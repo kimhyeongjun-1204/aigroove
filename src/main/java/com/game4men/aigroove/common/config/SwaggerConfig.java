@@ -26,7 +26,7 @@ public class SwaggerConfig {
                 .components(components)
                 .info(new Info()
                         .title("AI Groove API Server")
-                        .version("v0.4")
+                        .version("v0.5")
                         .description("AI Groove API 문서"));
                 }
 }

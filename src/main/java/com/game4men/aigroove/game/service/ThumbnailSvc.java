@@ -41,7 +41,7 @@ public class ThumbnailSvc {
             logger.error("Failed to create output directory", e);
             return CompletableFuture.failedFuture(e);
         }
-        
+
         return CompletableFuture.supplyAsync(() -> {
             try {
                 // Python 스크립트 실행 명령어 설정
@@ -77,7 +77,7 @@ public class ThumbnailSvc {
                 
                 // 프로세스 완료 대기
                 int exitCode = process.waitFor();
-                
+
                 if (exitCode != 0) {
                     throw new RuntimeException("Python script execution failed with exit code: " + exitCode);
                 }

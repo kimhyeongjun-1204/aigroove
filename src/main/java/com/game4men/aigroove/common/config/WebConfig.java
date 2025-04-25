@@ -26,8 +26,8 @@ public class WebConfig implements WebMvcConfigurer {
         return registrationBean;
     }
 
-    @Override
-    public void addViewControllers(ViewControllerRegistry registry) {
-        registry.addViewController("/**").setViewName("forward:/index.html");
-    }
+    // @Override
+    // public void addViewControllers(ViewControllerRegistry registry) {
+    //     registry.addViewController("/**").setViewName("forward:/index.html");
+    // }
 }
