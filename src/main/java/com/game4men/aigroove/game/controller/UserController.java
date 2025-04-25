@@ -36,14 +36,16 @@ public class UserController {
     @PostMapping("/login")
     public ResponseEntity<JwtResponse> login(
             @RequestBody LoginRequest loginRequest) {
-        // LoginSvc를 통해 인증 및 JWT 토큰 생성
-        String jwtToken = userSvc.login(loginRequest);
-        JwtResponse jwtResponse = new JwtResponse(jwtToken, loginRequest.getUsername(), "Bearer");
-
-        // 응답 반환
-        return ResponseEntity.ok(jwtResponse);
+        try {
+            String jwtToken = userSvc.login(loginRequest);
+            JwtResponse jwtResponse = new JwtResponse(jwtToken, loginRequest.getUsername(), "Bearer");
+            return ResponseEntity.ok(jwtResponse);
+        } catch (Exception e) {
+            System.err.println(e);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
     }
-    
+
     @Operation(summary = "회원가입 [토큰 불필요]", description = "회원가입 처리")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "회원가입 성공", content = @Content(schema = @Schema(implementation = UserDTO.class))),
@@ -67,7 +69,7 @@ public class UserController {
             HttpServletRequest request) {
         try {
             User user = (User) request.getAttribute("user");
-            //log 남기기
+            // log 남기기
         } catch (Exception e) {
             System.err.println(e);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
@@ -86,7 +88,7 @@ public class UserController {
             HttpServletRequest request) {
         try {
             User user = (User) request.getAttribute("user");
-            userSvc.deleteAccount(user.getUser_id());
+            userSvc.deleteAccount(user);
         } catch (Exception e) {
             System.err.println(e);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
