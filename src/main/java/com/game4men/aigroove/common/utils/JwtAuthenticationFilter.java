@@ -29,7 +29,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             filterChain.doFilter(request, response);
             return;
         }
-
+        
         // Authorization 헤더에서 토큰 추출
         String token = extractToken(request);
 
@@ -38,8 +38,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String username = jwtUtils.getUsernameFromToken(token);
 
             // 사용자 정보 조회
-            User user = userRepository.findByUsername(username)
-                    .orElse(null);
+            User user = userRepository.findByUsername(username).orElse(null);
+            System.err.println(user);
 
             if (user != null) {
                 // 사용자 정보를 요청 속성에 설정
@@ -64,10 +64,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private boolean shouldSkipAuthentication(HttpServletRequest request) {
         // 로그인, 회원가입 등 인증이 필요 없는 경로 설정
         String path = request.getRequestURI();
-        return path.startsWith("/game/user/login") ||
-                path.startsWith("/game/user/signup") ||
-                path.startsWith("/game/notice") ||
-                path.startsWith("/game/ranking") ||
+        return path.startsWith("/api/game/user/login") ||
+                path.startsWith("/api/game/user/signup") ||
+                path.startsWith("/api/game/notice") ||
+                path.startsWith("/api/game/ranking") ||
                 path.startsWith("/admin");
     }
 

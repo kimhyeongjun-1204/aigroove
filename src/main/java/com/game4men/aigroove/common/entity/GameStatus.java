@@ -24,14 +24,14 @@ public class GameStatus {
     private User user;
 
     @Column(name = "current_progress", nullable = false)
-    private Float currentProgress;
+    private Float currentProgress = 0f;
 
     @Column(name = "last_checkpoint", nullable = false)
-    private Float lastCheckpoint;
+    private Float lastCheckpoint = 0f;
 
     @Column(name = "deaths", nullable = false)
-    private Integer deaths;
+    private Integer deaths = 0;
 
     @Column(name = "has_cleared", nullable = false)
-    private Boolean hasCleared;
+    private Boolean hasCleared = false;
 } 

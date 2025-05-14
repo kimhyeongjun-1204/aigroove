@@ -21,7 +21,7 @@ public class WebConfig implements WebMvcConfigurer {
     public FilterRegistrationBean<JwtAuthenticationFilter> jwtAuthenticationFilter() {
         FilterRegistrationBean<JwtAuthenticationFilter> registrationBean = new FilterRegistrationBean<>();
         registrationBean.setFilter(new JwtAuthenticationFilter(jwtUtils, userRepository));
-        registrationBean.addUrlPatterns("/game/*"); // 모든 API 엔드포인트에 적용
+        registrationBean.addUrlPatterns("/api/game/*"); // 모든 API 엔드포인트에 적용
         registrationBean.setOrder(1); // 필터 순서 설정
         return registrationBean;
     }

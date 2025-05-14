@@ -1,7 +1,9 @@
 package com.game4men.aigroove.game.controller;
 
+import com.game4men.aigroove.game.service.AudioConvertSvc;
 import com.game4men.aigroove.game.service.ThumbnailSvc;
 import com.game4men.aigroove.game.DTO.ImageGenerationResponse;
+import com.game4men.aigroove.game.DTO.MapFile;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -11,7 +13,16 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
+
+import javax.sound.sampled.AudioFileFormat;
+import javax.sound.sampled.AudioFormat;
+import javax.sound.sampled.AudioInputStream;
+import javax.sound.sampled.AudioSystem;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -21,17 +32,21 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 
 @RestController
-@RequestMapping("/game/song")
-@Tag(name = "o[개발중]곡 등록 API", description = "곡 등록 관련 API")
+@RequestMapping("/api/game/song")
+@Tag(name = "곡 등록 API", description = "곡 등록 관련 API")
 public class SongController {
 
     @Autowired
     private ThumbnailSvc thumbnailSvc;
+    @Autowired
+    private AudioConvertSvc audioConverterService;
 
     @Operation(summary = "썸네일 생성 요청", description = "프롬프트를 통한 썸네일 생성 요청을 서버로 전송합니다.")
     @ApiResponses(value = {
@@ -90,6 +105,59 @@ public class SongController {
             return ResponseEntity.ok("completed");
         } catch (Exception e) {
             return ResponseEntity.ok("processing");
+        }
+    }
+
+    @Operation(summary = "WAV 파일 변환 요청", description = "요청한 음원 파일을 WAV 형식으로 변환해서 반환합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "성공"),
+            @ApiResponse(responseCode = "400", description = "오류"),
+            @ApiResponse(responseCode = "401", description = "사용자가 인증되지 않았습니다.")
+    })
+    @PostMapping(value = "/wav", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<byte[]> convertToWav(
+            @RequestParam("file") MultipartFile file,
+            HttpServletRequest request) {
+        try {
+            byte[] wavData = audioConverterService.convertToWav(file);
+
+            return ResponseEntity.ok()
+                    .contentType(MediaType.valueOf("audio/wav"))
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"converted.wav\"")
+                    .body(wavData);
+        } catch (Exception e) {
+            System.err.println(e);
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @Operation(summary = "맵 파일 변환 요청", description = "요청한 음원 파일을 맵 파일 형식으로 변환해서 반환합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "성공"),
+            @ApiResponse(responseCode = "400", description = "오류"),
+            @ApiResponse(responseCode = "401", description = "사용자가 인증되지 않았습니다.")
+    })
+    @PostMapping(value = "/map_file", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<MapFile> convertToMapFile(
+            @RequestParam("file") MultipartFile file,
+            HttpServletRequest request) {
+        try {
+            List<Double> times = List.of(1.75, 3.02, 4.65, 6.33, 7.49, 9.18, 11.01, 12.62, 14.31, 16.12,
+            17.77, 19.55, 21.24, 23.01, 24.76, 26.44, 28.37, 30.12, 31.93, 33.55,
+            35.41, 37.13, 39.01, 40.77, 42.39, 44.26, 46.17, 47.88, 49.76, 51.48,
+            53.25, 55.03, 56.88, 58.47, 60.26, 62.11, 63.89, 65.63, 67.41, 69.16,
+            70.94, 72.72, 74.56, 76.42, 78.13, 79.81, 81.69, 83.44, 85.17, 86.89,
+            88.66, 90.34, 92.12, 93.81, 95.69, 97.48, 99.16, 100.84, 102.69, 104.53, 106.22,
+            107.98, 109.67, 111.49, 113.23, 115.04, 116.76, 118.41, 120.23, 121.94, 123.66,
+            125.42, 127.13, 128.84, 130.59, 132.27, 134.01, 135.82, 137.56, 139.27, 141.06,
+            142.78, 144.49, 146.23, 148.01, 149.67, 151.44, 153.27, 155.01, 156.72, 158.47,
+            160.28, 162.01, 163.76, 165.55, 167.23, 168.99, 170.82, 172.63, 174.42, 176.23);
+            MapFile mapFile = new MapFile(times);
+
+            return ResponseEntity.ok().body(mapFile);
+        } catch (Exception e) {
+            System.err.println(e);
+            return ResponseEntity.badRequest().build();
         }
     }
 

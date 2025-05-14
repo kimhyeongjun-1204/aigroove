@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/game")
+@RequestMapping("/api/game")
 @Tag(name = "기타 API", description = "기타 API")
 public class MiscController {
     @Autowired

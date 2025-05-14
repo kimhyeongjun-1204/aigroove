@@ -7,10 +7,9 @@ import lombok.Data;
 @Data
 public class PlayStatusDTO {
     @NotNull
-    private float current_progress;
+    private float currentProgress;
     @NotNull
-    private float last_checkpoint;
+    private float lastCheckpoint;
     private int deaths;
-    @NotNull
-    private boolean has_cleared;
+    private Boolean hasCleared;
 }

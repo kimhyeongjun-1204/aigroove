@@ -21,4 +21,5 @@ public class User {
     private String hashed_password;
     private String email;
     private String nickname;
+    private Boolean is_tutorial_complete = false;
 }

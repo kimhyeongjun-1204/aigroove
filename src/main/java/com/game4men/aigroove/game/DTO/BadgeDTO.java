@@ -9,8 +9,8 @@ public class BadgeDTO {
     @NotNull
     private int code;
     @NotNull
-    private int current_value;
-    private int max_value;
+    private int currentValue;
+    private int maxValue;
     @NotNull
-    private boolean has_achieved;
+    private Boolean hasAchieved;
 }
