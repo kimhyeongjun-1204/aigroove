@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/game/ranking")
+@RequestMapping("/api/game/ranking")
 @Tag(name = "o[개발중]랭킹 API", description = "랭킹 관련 API")
 public class RankingController {
 

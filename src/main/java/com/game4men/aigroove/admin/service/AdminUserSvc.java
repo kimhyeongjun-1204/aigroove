@@ -34,6 +34,8 @@ public class AdminUserSvc {
     public void deleteUser(Integer userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
+
+        inquiryRepository.deleteByUser(user);
         userRepository.delete(user);
     }
 
@@ -50,42 +52,42 @@ public class AdminUserSvc {
     public List<UserResponse> searchUsers(String keyword) {
         return userRepository.findByUsernameContainingOrNicknameContainingOrEmailContaining(
                 keyword, keyword, keyword)
-            .stream()
-            .map(this::convertToDto)
-            .collect(Collectors.toList());
+                .stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
     }
-    
-//    @Transactional(readOnly = true)
-//    public Map<String, Object> getUserDetail(Integer userId) {
-//        // 1. 기본 사용자 정보 조회
-//        User user = userRepository.findById(userId)
-//                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
-//
-//        // 2. 플레이 타임 계산 (GameStatus 테이블에서)
-//        int totalPlayTime = gameStatusRepository.findByUser_UserId(userId)
-//                .stream()
-//                .mapToInt(status -> calculatePlayTime(status))
-//                .sum();
-//
-//        // 3. 등록한 곡 수 계산 (GameRoom 테이블에서 host_id가 userId인 경우)
-//        int songNumber = gameRoomRepository.countByHostId(userId);
-//
-//        // 4. 문의글 수 계산 (Inquiry 테이블에서)
-//        int inquiryNumber = inquiryRepository.countByUserId(userId);
-//
-//        // 5. 결과 맵 생성
-//        Map<String, Object> result = new HashMap<>();
-//        result.put("nickname", user.getNickname());
-//        result.put("play_time", totalPlayTime);
-//        result.put("song_number", songNumber);
-//        result.put("inquiry_number", inquiryNumber);
-//
-//        return result;
-//    }
-//
-//    private int calculatePlayTime(GameStatus status) {
-//        // 게임 진행도에 따른 플레이 타임 계산 로직
-//        // 예: 진행도 1.0이 3분이라고 가정하면
-//        return (int) (status.getCurrentProgress() * 180);
-//    }
-} 
+
+    // @Transactional(readOnly = true)
+    // public Map<String, Object> getUserDetail(Integer userId) {
+    // // 1. 기본 사용자 정보 조회
+    // User user = userRepository.findById(userId)
+    // .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
+    //
+    // // 2. 플레이 타임 계산 (GameStatus 테이블에서)
+    // int totalPlayTime = gameStatusRepository.findByUser_UserId(userId)
+    // .stream()
+    // .mapToInt(status -> calculatePlayTime(status))
+    // .sum();
+    //
+    // // 3. 등록한 곡 수 계산 (GameRoom 테이블에서 host_id가 userId인 경우)
+    // int songNumber = gameRoomRepository.countByHostId(userId);
+    //
+    // // 4. 문의글 수 계산 (Inquiry 테이블에서)
+    // int inquiryNumber = inquiryRepository.countByUserId(userId);
+    //
+    // // 5. 결과 맵 생성
+    // Map<String, Object> result = new HashMap<>();
+    // result.put("nickname", user.getNickname());
+    // result.put("play_time", totalPlayTime);
+    // result.put("song_number", songNumber);
+    // result.put("inquiry_number", inquiryNumber);
+    //
+    // return result;
+    // }
+    //
+    // private int calculatePlayTime(GameStatus status) {
+    // // 게임 진행도에 따른 플레이 타임 계산 로직
+    // // 예: 진행도 1.0이 3분이라고 가정하면
+    // return (int) (status.getCurrentProgress() * 180);
+    // }
+}

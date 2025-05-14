@@ -14,19 +14,17 @@ import com.game4men.aigroove.common.entity.User;
 
 import jakarta.servlet.http.HttpServletRequest;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/game")
+@RequestMapping("/api/game")
 @Tag(name = "기타 API", description = "기타 API")
 public class MiscController {
     @Autowired
@@ -39,7 +37,7 @@ public class MiscController {
             @ApiResponse(responseCode = "200", description = "공지사항 반환 성공"),
             @ApiResponse(responseCode = "400", description = "오류")
     })
-    @PostMapping("/notice")
+    @GetMapping("/notice")
     public ResponseEntity<NoticeDTO> getRecentNotice() 
     {                
         NoticeDTO dto = new NoticeDTO();
@@ -65,8 +63,13 @@ public class MiscController {
     public ResponseEntity<Void> uploadInquiry(
             @RequestBody InquiryDTO inquiry,
             HttpServletRequest request) {
-        User user = (User) request.getAttribute("user");
-        inquirySvc.saveInquiry(user, inquiry);
+        try {
+            User user = (User) request.getAttribute("user");
+            inquirySvc.saveInquiry(user, inquiry);
+        } catch (Exception e) {
+            System.err.println(e);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        }
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 }

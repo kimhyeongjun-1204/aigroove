@@ -50,6 +50,9 @@ dependencies {
 	/*Swagger dependency*/
 
 	implementation 'org.springframework.boot:spring-boot-starter-mail'
+
+	/*Audio converter dependency*/
+    implementation 'ws.schild:jave-all-deps:3.3.1'
 }
 
 tasks.named('test') {

@@ -8,7 +8,11 @@ import lombok.Data;
 public class GameRoomDTO {
     @NotBlank
     private String room_code;
-    private boolean has_guest;
-    private boolean is_download_complete;
-    private boolean is_game_started;
+    private Integer host_id;
+    private Integer guest_id;
+    private Boolean has_guest;
+    private Boolean is_download_complete;
+    private Boolean is_game_started;
+    @NotBlank
+    private String play_file_key;
 }
