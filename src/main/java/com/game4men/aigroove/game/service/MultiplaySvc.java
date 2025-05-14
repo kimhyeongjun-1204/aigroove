@@ -104,31 +104,6 @@ public class MultiplaySvc {
         return;
     }
 
-    // 2. 관리자 탈퇴 , 관리자 승인 거절
-    @Transactional
-    public void deleteAdmin(Integer adminId) {
-        Admin admin = gameRoomRepository.findById(adminId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 관리자를 찾을 수 없습니다. ID: " + adminId));
-
-        gameRoomRepository.delete(admin);
-    }
-
-    // 3. 관리자 승인
-    @Transactional
-    public void approveAdmin(Integer adminId) {
-        Admin admin = gameRoomRepository.findById(adminId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 관리자를 찾을 수 없습니다"));
-
-        admin.setSignupDate(LocalDate.now());
-        gameRoomRepository.save(admin);
-    }
-
-    @Transactional(readOnly = true)
-    public Admin findAdmin(Integer adminId) {
-        return gameRoomRepository.findById(adminId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 관리자를 찾을 수 없습니다. ID: " + adminId));
-    }
-
     private String createRandomCode(){
         return new Random().ints(48, 123)
         .filter(i -> (i <= 57 || i >= 65) && (i <= 90 || i >= 97))
