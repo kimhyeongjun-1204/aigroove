@@ -1,9 +1,9 @@
 package com.game4men.aigroove.admin.controller;
 
-import com.game4men.aigroove.admin.DTO.LoginRequest;
-import com.game4men.aigroove.admin.DTO.LoginResponse;
-import com.game4men.aigroove.admin.DTO.SignupRequest;
-import com.game4men.aigroove.admin.DTO.SignupResponse;
+import com.game4men.aigroove.admin.dto.LoginRequest;
+import com.game4men.aigroove.admin.dto.LoginResponse;
+import com.game4men.aigroove.admin.dto.SignupRequest;
+import com.game4men.aigroove.admin.dto.SignupResponse;
 import com.game4men.aigroove.admin.service.LoginSvc;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -25,7 +25,7 @@ public class LoginController {
     /* 1. 로그인 요청 */
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest request) {
-        System.out.println(request.getPassword() + " " + request.getUsername());
+        // 보안: 비밀번호 평문 로깅 제거 — 로그에 민감 정보 노출 방지
         return loginSvc.login(request);
     }
 

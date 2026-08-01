@@ -6,6 +6,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "ModelInfo")
@@ -49,4 +51,21 @@ public class ModelInfo {
 
     @Column(name = "num_layers", nullable = false)
     private Integer numLayers;
+
+    // 추가 => 모델 학습에 사용된 데이터셋 목록 
+    @ManyToMany
+    @JoinTable(
+        name = "ModelInfo_Dataset", // 중간 매핑 테이블명
+        joinColumns = @JoinColumn(name = "model_id"),
+        inverseJoinColumns = @JoinColumn(name = "dataset_id")
+    )
+    private List<DatasetInfo> datasets = new ArrayList<>();
+
+    // 추가 => AI 평균 처리 소요 시간(초) 필드 
+    @Column(name = "average_model_time", nullable = false)
+    private Integer average_model_time;  
+
+    // 추가 => 모델 선택 여부 
+    @Column(name = "selected", nullable = false)
+    private boolean selected;
 } 

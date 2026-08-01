@@ -8,6 +8,7 @@ import java.util.List;
 @Data
 public class MapFile {
     private List<Double> TurnTimes;
+    public MapFile(){};
 
     public MapFile(List<Double> turnTimes) {
         this.TurnTimes = turnTimes;

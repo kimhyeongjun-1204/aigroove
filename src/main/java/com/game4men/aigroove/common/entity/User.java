@@ -22,4 +22,10 @@ public class User {
     private String email;
     private String nickname;
     private Boolean is_tutorial_complete = false;
+    // 사용자 업로드 곡 수
+    @Column(name = "uploaded_song_count", nullable = false)
+    private Integer uploadedSongCount = 0;
+
+    @Column(name = "is_delete", nullable = true)
+    private Boolean isDelete = false;
 }

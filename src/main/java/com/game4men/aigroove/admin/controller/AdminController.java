@@ -1,6 +1,6 @@
 package com.game4men.aigroove.admin.controller;
 
-import com.game4men.aigroove.admin.DTO.AdminResponse;
+import com.game4men.aigroove.admin.dto.AdminResponse;
 import com.game4men.aigroove.admin.service.AdminSvc;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -28,11 +28,13 @@ public class AdminController {
 
     // 2. 관리자 삭제(관리자 승인 거절)
     @DeleteMapping("/delete")
-    public ResponseEntity<Map<String, Object>> deleteAdmin(@RequestParam("admin_id") Integer adminId) {
+    public ResponseEntity<Map<String, Object>> deleteAdmin(@RequestParam("login_id") String loginId, @RequestParam("admin_id") Integer adminId) {
         System.out.println("deleteAdmin: " + adminId + "");
         Map<String, Object> response = new HashMap<>();
         try {
-            adminService.deleteAdmin(adminId);
+            // 관리자 삭제 처리
+            adminService.deleteAdmin(adminId, loginId);
+
             response.put("result_code", 200);
             response.put("message", "관리자가 성공적으로 삭제되었습니다.");
         } catch (IllegalArgumentException e) {
@@ -49,10 +51,13 @@ public class AdminController {
 
     // 3. 관리자 승인
     @PostMapping("/accept")
-    public ResponseEntity<Map<String, Object>> approveAdmin(@RequestParam("admin_id") Integer adminId) {
+    public ResponseEntity<Map<String, Object>> approveAdmin(
+            @RequestParam("admin_id") Integer adminId, 
+            @RequestParam("role") String role,
+            @RequestParam("login_id") String loginId) {
         Map<String, Object> response = new HashMap<>();
         try {
-            adminService.approveAdmin(adminId);
+            adminService.approveAdmin(adminId, role, loginId);
             response.put("result_code", 200);
             response.put("message", "관리자 승인이 완료되었습니다.");
         } catch (IllegalArgumentException e) {

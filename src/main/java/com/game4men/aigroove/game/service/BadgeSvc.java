@@ -82,6 +82,7 @@ public class BadgeSvc {
             BadgeDTO dto = new BadgeDTO();
             dto.setCode(badge.getBadgeCode());
             dto.setCurrentValue(badge.getCurrentValue());
+            dto.setMaxValue(getBadgeMaxValue(badge.getBadgeCode()));
             dto.setHasAchieved(badge.getHasAchieved());
             list.add(dto);
         }
@@ -96,6 +97,7 @@ public class BadgeSvc {
         BadgeDTO dto = new BadgeDTO();
         dto.setCode(badge.getBadgeCode());
         dto.setCurrentValue(badge.getCurrentValue());
+        dto.setMaxValue(getBadgeMaxValue(badge.getBadgeCode()));
         dto.setHasAchieved(badge.getHasAchieved());
         return dto;
     }
@@ -181,5 +183,38 @@ public class BadgeSvc {
     public void deleteBadgeByUserAndBadgeCode(User user, Integer badgeCode) {
         Optional<Badge> badge = badgeRepository.findByUserAndBadgeCode(user, badgeCode);
         badge.ifPresent(badgeRepository::delete);
+    }
+
+    private int getBadgeMaxValue(int code){
+        switch(code){
+            case 1:
+            case 5:
+            case 10:
+            case 14:
+            case 18:
+            case 19:
+            case 20:
+                return 1;
+            case 2:
+            case 6:
+            case 12:
+            case 16:
+                return 5;
+            case 3:
+            case 7:
+                return 25;
+            case 4:
+            case 8:
+                return 50;
+            case 11:
+            case 15:
+                return 3;
+            case 9:
+                return 100;
+            case 13:
+            case 17:
+                return 10;
+        }
+        return 0;
     }
 }

@@ -1,5 +1,6 @@
-package com.game4men.aigroove.admin.DTO;
+package com.game4men.aigroove.admin.dto;
 
+import com.game4men.aigroove.common.entity.Admin;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -15,4 +16,5 @@ public class LoginResponse {
     private String login_token;
     private String admin_name;
     private int admin_id;
+    private Admin.Role role;
 } 

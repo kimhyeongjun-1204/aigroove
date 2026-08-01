@@ -1,6 +1,6 @@
 package com.game4men.aigroove.admin.service;
 
-import com.game4men.aigroove.admin.DTO.*;
+import com.game4men.aigroove.admin.dto.*;
 import com.game4men.aigroove.common.entity.Admin;
 import com.game4men.aigroove.common.repository.LoginRepository;
 import com.game4men.aigroove.common.utils.JwtUtils;
@@ -31,15 +31,15 @@ public class LoginSvc {
                 .orElse(null);
 
         if (admin == null || !passwordEncoder.matches(request.getPassword(), admin.getHashedPassword())) {
-            return ResponseEntity.ok(new LoginResponse(401, "", "",-1)); // 인증 실패
+            return ResponseEntity.ok(new LoginResponse(401, "", "",-1, null)); // 인증 실패
         }
 
         if(admin.getSignupDate() == null) {
-            return ResponseEntity.ok(new LoginResponse(402, "", "", -1));
+            return ResponseEntity.ok(new LoginResponse(402, "", "", -1, null));
         }
 
         String token = jwtUtil.generateToken(admin.getUsername());
-        return ResponseEntity.ok(new LoginResponse(201, token, admin.getName(),admin.getAdminId())); // 성공
+        return ResponseEntity.ok(new LoginResponse(201, token, admin.getName(),admin.getAdminId(), admin.getRole())); // 성공
     }
 
     /* 2. 회원가입 처리 */

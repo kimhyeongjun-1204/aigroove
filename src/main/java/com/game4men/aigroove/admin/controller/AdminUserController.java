@@ -1,6 +1,6 @@
 package com.game4men.aigroove.admin.controller;
 
-import com.game4men.aigroove.admin.DTO.UserResponse;
+import com.game4men.aigroove.admin.dto.UserResponse;
 import com.game4men.aigroove.admin.service.AdminUserSvc;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -73,11 +73,13 @@ public class AdminUserController {
     }
 
     // 4. 사용자 삭제
-    @DeleteMapping("/delete/id={userId}")
-    public ResponseEntity<Map<String, Object>> deleteUser(@PathVariable Integer userId) {
+    @DeleteMapping("/delete/{userId}")
+    public ResponseEntity<Map<String, Object>> deleteUser(
+            @PathVariable Integer userId,
+            @RequestParam("login_id") String loginId) {
         Map<String, Object> response = new HashMap<>();
         try {
-            userService.deleteUser(userId);
+            userService.deleteUser(userId, loginId);
             response.put("result_code", 200);
             response.put("success", true);
             response.put("message", "사용자가 성공적으로 삭제되었습니다.");

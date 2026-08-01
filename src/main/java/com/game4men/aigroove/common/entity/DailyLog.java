@@ -16,7 +16,7 @@ import java.time.LocalDate;
 public class DailyLog {
     
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    //@GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "log_date")
     private LocalDate logDate;
     

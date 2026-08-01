@@ -1,11 +1,10 @@
 package com.game4men.aigroove.admin.service;
 
-import com.game4men.aigroove.admin.DTO.UserResponse;
+import com.game4men.aigroove.admin.dto.UserResponse;
+import com.game4men.aigroove.common.entity.Admin;
 import com.game4men.aigroove.common.entity.User;
-import com.game4men.aigroove.common.repository.GameRoomRepository;
-import com.game4men.aigroove.common.repository.GameStatusRepository;
-import com.game4men.aigroove.common.repository.InquiryRepository;
-import com.game4men.aigroove.common.repository.UserRepository;
+import com.game4men.aigroove.common.entity.Log;
+import com.game4men.aigroove.common.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,22 +20,35 @@ public class AdminUserSvc {
     private final GameStatusRepository gameStatusRepository;
     private final GameRoomRepository gameRoomRepository;
     private final InquiryRepository inquiryRepository;
+    private final LogSvc logSvc;
+    private final AdminRepository adminRepository;
 
     // 모든 사용자 조회
     public List<UserResponse> findAllUsers() {
         return userRepository.findAll().stream()
+                .filter(user -> !user.getIsDelete())  // isDelete가 false인 사용자만 필터링
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
     }
 
     // 사용자 삭제
     @Transactional
-    public void deleteUser(Integer userId) {
-        User user = userRepository.findById(userId)
+    public void deleteUser(Integer userId, String loginId) {
+        User targetUser = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
 
-        inquiryRepository.deleteByUser(user);
-        userRepository.delete(user);
+        Admin loginAdmin = adminRepository.findByUsername(loginId)
+                .orElseThrow(() -> new IllegalArgumentException("로그인한 관리자를 찾을 수 없습니다. Username: " + loginId));
+
+        targetUser.setIsDelete(true);
+        userRepository.save(targetUser);
+
+        // 로그 기록
+        logSvc.saveLog(
+            targetUser.getNickname() + " 사용자를 탈퇴 처리하였습니다.",
+            loginAdmin,
+            Log.LogLevel.INFO
+        );
     }
 
     // User 엔티티를 UserResponse DTO로 변환
@@ -53,6 +65,7 @@ public class AdminUserSvc {
         return userRepository.findByUsernameContainingOrNicknameContainingOrEmailContaining(
                 keyword, keyword, keyword)
                 .stream()
+                .filter(user -> !user.getIsDelete())  // isDelete가 false인 사용자만 필터링
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
     }

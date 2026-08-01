@@ -1,10 +1,11 @@
 package com.game4men.aigroove.admin.service;
 
-import com.game4men.aigroove.admin.DTO.InquiryResponse;
+import com.game4men.aigroove.admin.dto.InquiryResponse;
 import com.game4men.aigroove.common.entity.Inquiry;
+import com.game4men.aigroove.common.entity.Log;
+import com.game4men.aigroove.common.entity.Admin;
 import com.game4men.aigroove.common.repository.InquiryRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,11 +18,11 @@ import java.util.stream.Collectors;
 public class InquirySvc {
     private final InquiryRepository inquiryRepository;
     private final EmailService emailService;
+    private final LogSvc logSvc;
     
+    // Fetch Join으로 N+1 문제 해결 (기존: 1+N회 쿼리 → 개선: 1회)
     public List<InquiryResponse> getInquiryList(String adminId, String keyword) {
-        // inquiry_id 기준으로 내림차순 정렬
-        Sort sort = Sort.by(Sort.Direction.DESC, "inquiryId");
-        List<Inquiry> inquiries = inquiryRepository.findAll(sort);
+        List<Inquiry> inquiries = inquiryRepository.findAllWithUserAndAdmin();
         
         return inquiries.stream()
                 .filter(inquiry -> {
@@ -58,7 +59,7 @@ public class InquirySvc {
     }
 
     @Transactional
-    public void answerInquiry(Integer inquiryId, String answerTitle, String answerContent) {
+    public void answerInquiry(Integer inquiryId, String answerTitle, String answerContent, Admin author) {
         Inquiry inquiry = inquiryRepository.findById(inquiryId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 문의글이 존재하지 않습니다."));
         
@@ -70,5 +71,12 @@ public class InquirySvc {
         emailService.sendInquiryAnswerEmail(userEmail, inquiry.getTitle(), answerTitle, answerContent);
         
         inquiryRepository.save(inquiry);
+
+        // 로그 기록
+        logSvc.saveLog(
+            "문의글에 답변을 등록하였습니다. (제목: " + inquiry.getTitle() + ")",
+            author,
+            Log.LogLevel.INFO
+        );
     }
 }

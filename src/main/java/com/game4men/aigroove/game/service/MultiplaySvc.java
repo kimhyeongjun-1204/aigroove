@@ -2,28 +2,31 @@ package com.game4men.aigroove.game.service;
 
 import com.game4men.aigroove.common.entity.GameRoom;
 import com.game4men.aigroove.common.entity.GameStatus;
+import com.game4men.aigroove.common.entity.SongInfo;
 import com.game4men.aigroove.common.entity.User;
 import com.game4men.aigroove.common.repository.GameRoomRepository;
 import com.game4men.aigroove.common.repository.GameStatusRepository;
+import com.game4men.aigroove.common.repository.SongInfoRepository;
 import com.game4men.aigroove.common.repository.UserRepository;
 import com.game4men.aigroove.game.DTO.GameRoomDTO;
+import com.game4men.aigroove.game.DTO.MapFile;
 import com.game4men.aigroove.game.DTO.PlayResultDTO;
 import com.game4men.aigroove.game.DTO.PlayStatusDTO;
+import com.game4men.aigroove.game.DTO.SongInfoDTO;
 import com.game4men.aigroove.game.exception.DownloadIncompleteException;
 import com.game4men.aigroove.game.exception.GameAlreadyStartedException;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.NoSuchElementException;
-import java.util.Optional;
 import java.util.Random;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -31,51 +34,14 @@ public class MultiplaySvc {
     private final GameRoomRepository gameRoomRepository;
     private final UserRepository userRepository;
     private final GameStatusRepository gameStatusRepository;
+    private final SongInfoRepository songInfoRepository;
+    private final LogService logSvc;
 
-    private final String storageLocation = "C:\\dev\\AIGroove_api\\song_files"; // 실제 경로로 설정
-    
-    public String createGameRoom(User host, MultipartFile playFile) {
-        try {
-            Optional<GameRoom> room;
-            String roomCode = "";
-            boolean roomExists = true;
+    private final String storageLocation = "/home/t25102/v0.9/multiplay-files"; // 실제 경로로 설정
 
-            for(int i = 0; i < 10; i++){
-                roomCode = createRandomCode();
-                if(gameRoomRepository.existsById(roomCode)) continue;
-                else roomExists = false; break;
-            }
-            if (roomExists) throw new Exception();
-
-            // UUID를 이용한 고유 키 생성
-            String uniqueKey = UUID.randomUUID().toString();
-
-            // 파일 저장 경로 생성
-            Path filePath = Paths.get(storageLocation).resolve(uniqueKey);
-
-            // 파일 저장
-            Files.copy(playFile.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
-            
-            GameRoom gameRoom = new GameRoom();
-            gameRoom.setRoomCode(roomCode);
-            gameRoom.setHost(host);
-            gameRoom.setHasGuest(false);
-            gameRoom.setIsDownloadComplete(false);
-            gameRoom.setIsGameStarted(false);
-            gameRoom.setPlayfileUri(filePath.toString());
-            gameRoom.setRoomCode(roomCode);
-
-            gameRoomRepository.save(gameRoom);
-
-            return roomCode;
-        } catch (Exception e) {
-            throw new RuntimeException("파일 저장 실패", e);
-        }
-    }
-
-    public GameRoomDTO getGameRoomData(String roomCode){
+    public GameRoomDTO getGameRoomData(String roomCode) {
         GameRoom gameRoom = gameRoomRepository.findById(roomCode).get();
-        
+
         String key = Paths.get(gameRoom.getPlayfileUri()).getFileName().toString();
 
         GameRoomDTO dto = new GameRoomDTO();
@@ -90,42 +56,155 @@ public class MultiplaySvc {
         return dto;
     }
 
-    public void updateGameRoomData(GameRoomDTO dto){
+    public void updateGameRoomData(GameRoomDTO dto) {
         GameRoom gameRoom = gameRoomRepository.findById(dto.getRoom_code()).get();
         User host = userRepository.findById(dto.getHost_id()).get();
         gameRoom.setHost(host);
-        
+
         if (dto.getGuest_id() != null) {
             User guest = userRepository.findById(dto.getGuest_id()).get();
             gameRoom.setGuest(guest);
         } else {
             gameRoom.setGuest(null);
         }
-        
+
         gameRoom.setHasGuest(dto.getHas_guest());
         gameRoom.setIsDownloadComplete(dto.getIs_download_complete());
         gameRoom.setIsGameStarted(dto.getIs_game_started());
         String playfileUri = getPathUriFromKey(dto.getPlay_file_key());
         gameRoom.setPlayfileUri(playfileUri);
-        
+
         gameRoomRepository.save(gameRoom);
     }
 
-    public byte[] getPlayFile(String key){
+    public String createGameRoom(User host, SongInfoDTO songInfoDTO) {
         try {
-            Path filePath = Paths.get(storageLocation).resolve(key);
+            String roomCode = "";
+            boolean roomExists = true;
+
+            for (int i = 0; i < 10; i++) {
+                roomCode = createRandomCode();
+                if (gameRoomRepository.existsById(roomCode))
+                    continue;
+                else
+                    roomExists = false;
+                break;
+            }
+            if (roomExists)
+                throw new Exception();
+
+            GameRoom gameRoom = new GameRoom();
+            gameRoom.setRoomCode(roomCode);
+            gameRoom.setHost(host);
+            gameRoom.setHasGuest(false);
+            gameRoom.setIsDownloadComplete(false);
+            gameRoom.setIsGameStarted(false);
+            gameRoom.setPlayfileUri(storageLocation);
+            gameRoom.setRoomCode(roomCode);
+
+            gameRoomRepository.save(gameRoom);
+
+            SongInfo songInfo = new SongInfo();
+            songInfo.setGameRoom(gameRoom);
+            songInfo.setTitle(songInfoDTO.getTitle());
+            songInfo.setArtist(songInfoDTO.getArtist());
+            songInfo.setDuration(songInfoDTO.getDuration());
+            songInfo.setLevel(songInfoDTO.getLevel());
+
+            songInfoRepository.save(songInfo);
+
+            return roomCode;
+        } catch (Exception e) {
+            throw new RuntimeException("파일 저장 실패", e);
+        }
+    }
+
+    public SongInfoDTO getSongInfoDTO(String roomCode) {
+        GameRoom gameRoom = gameRoomRepository.findById(roomCode).get();
+        SongInfo songInfo = songInfoRepository.findByGameRoom(gameRoom);
+
+        SongInfoDTO dto = new SongInfoDTO();
+        dto.setArtist(songInfo.getArtist());
+        dto.setDuration(songInfo.getDuration());
+        dto.setLevel(songInfo.getLevel());
+        dto.setTitle(songInfo.getTitle());
+
+        return dto;
+    }
+
+    public void uploadWav(String roomCode, MultipartFile wavFile) {
+        try {
+            Path filePath = Paths.get(storageLocation).resolve(roomCode + ".wav");
+            // 파일 저장
+            Files.copy(wavFile.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+
+        } catch (Exception ex) {
+            throw new RuntimeException("파일을 찾을 수 없습니다", ex);
+        }
+    }
+
+    public byte[] getWav(String roomCode) {
+        try {
+            Path filePath = Paths.get(storageLocation).resolve(roomCode + ".wav");
             return Files.readAllBytes(filePath);
         } catch (Exception ex) {
             throw new RuntimeException("파일을 찾을 수 없습니다", ex);
         }
     }
 
-    public void startGame(String room_code) throws Exception{
+    public void uploadThumbnail(String roomCode, MultipartFile thumbnail) {
+        try {
+            Path filePath = Paths.get(storageLocation).resolve(roomCode + ".png");
+            // 파일 저장
+            Files.copy(thumbnail.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+
+        } catch (Exception ex) {
+            throw new RuntimeException("파일을 찾을 수 없습니다", ex);
+        }
+    }
+
+    public byte[] getThumbnail(String roomCode) {
+        try {
+            Path filePath = Paths.get(storageLocation).resolve(roomCode + ".png");
+            return Files.readAllBytes(filePath);
+        } catch (Exception ex) {
+            throw new RuntimeException("파일을 찾을 수 없습니다", ex);
+        }
+    }
+
+    public void uploadMap(String roomCode, MapFile map) {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+
+            Path filePath = Paths.get(storageLocation).resolve(roomCode + ".json");
+            Files.createDirectories(filePath.getParent()); // 디렉토리 없을 경우 생성
+
+            mapper.writerWithDefaultPrettyPrinter().writeValue(filePath.toFile(), map);
+        } catch (Exception ex) {
+            throw new RuntimeException("파일을 찾을 수 없습니다", ex);
+        }
+    }
+
+    public MapFile getMap(String roomCode) {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+
+            Path filePath = Paths.get(storageLocation).resolve(roomCode + ".json");
+            return mapper.readValue(filePath.toFile(), MapFile.class);
+        } catch (Exception ex) {
+            throw new RuntimeException("파일을 찾을 수 없습니다", ex);
+        }
+    }
+
+    public void startGame(String room_code) throws Exception {
         GameRoom gameRoom = gameRoomRepository.findById(room_code).get();
 
-        if (gameRoom.getGuest() == null) throw new NoSuchElementException();
-        if (gameRoom.getIsDownloadComplete() == false) throw new DownloadIncompleteException();
-        if (gameRoom.getIsGameStarted() == true) throw new GameAlreadyStartedException();
+        if (gameRoom.getGuest() == null)
+            throw new NoSuchElementException();
+        if (gameRoom.getIsDownloadComplete() == false)
+            throw new DownloadIncompleteException();
+        if (gameRoom.getIsGameStarted() == true)
+            throw new GameAlreadyStartedException();
 
         gameRoom.setIsGameStarted(true);
         gameRoomRepository.save(gameRoom);
@@ -141,9 +220,9 @@ public class MultiplaySvc {
         gameStatusRepository.save(guestGameStatus);
     }
 
-    public void updatePlayStatus(User user, PlayStatusDTO dto){
+    public void updatePlayStatus(User user, PlayStatusDTO dto) {
         GameStatus gameStatus = gameStatusRepository.findByUser(user).get();
-        
+
         gameStatus.setCurrentProgress(dto.getCurrentProgress());
         gameStatus.setDeaths(dto.getDeaths());
         gameStatus.setHasCleared(dto.getHasCleared());
@@ -151,7 +230,7 @@ public class MultiplaySvc {
         gameStatusRepository.save(gameStatus);
     }
 
-    public PlayStatusDTO getPlayStatus(int opponentId, String room_code){
+    public PlayStatusDTO getPlayStatus(int opponentId, String room_code) {
         User opponent = userRepository.findById(opponentId).get();
         GameStatus status = gameStatusRepository.findByUser(opponent).get();
 
@@ -164,27 +243,27 @@ public class MultiplaySvc {
         return dto;
     }
 
-    public void uploadGameResult(PlayResultDTO playResult){
-        
+    public void uploadGameResult(PlayResultDTO playResult) {
+
         return;
     }
 
-    public void deleteGameRoom(String roomCode){
+    public void deleteGameRoom(String roomCode) {
         GameRoom gameRoom = gameRoomRepository.findById(roomCode).get();
         gameStatusRepository.deleteAllByGameRoom(gameRoom);
         gameRoomRepository.delete(gameRoom);
         return;
     }
 
-    private String createRandomCode(){
+    private String createRandomCode() {
         return new Random().ints(48, 91)
-        .filter(i -> (i <= 57 || (i >= 65 && i <= 90)))
-        .limit(5)
-        .collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append)
-        .toString();
+                .filter(i -> (i <= 57 || (i >= 65 && i <= 90)))
+                .limit(5)
+                .collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append)
+                .toString();
     }
 
-    private String getPathUriFromKey(String key){
+    private String getPathUriFromKey(String key) {
         // 파일 저장 경로 생성
         Path filePath = Paths.get(storageLocation).resolve(key);
         return filePath.toString();

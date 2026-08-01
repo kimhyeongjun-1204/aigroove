@@ -10,6 +10,12 @@ import java.time.LocalDate;
 @Setter
 @Table(name = "Admin")
 public class Admin {
+    public enum Role {
+        MASTER,
+        USER,
+        AI
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "admin_id")
@@ -29,4 +35,13 @@ public class Admin {
 
     @Column(name = "birth", nullable = false)
     private LocalDate birth;
-} 
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "role", length = 10)
+    private Role role;
+
+    // 삭제 여부 
+    @Column(name = "is_delete", nullable = true)
+    private Boolean isDelete = false;
+
+}

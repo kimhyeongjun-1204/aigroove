@@ -1,6 +1,7 @@
 package com.game4men.aigroove.game.controller;
 
 import com.game4men.aigroove.game.DTO.*;
+import com.game4men.aigroove.game.service.LogService;
 import com.game4men.aigroove.game.service.MiscSvc;
 import com.game4men.aigroove.admin.service.NoticeSvc;
 
@@ -13,6 +14,7 @@ import com.game4men.aigroove.common.entity.Notice;
 import com.game4men.aigroove.common.entity.User;
 
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -24,13 +26,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/game")
 @Tag(name = "기타 API", description = "기타 API")
 public class MiscController {
-    @Autowired
-    MiscSvc inquirySvc;
-    @Autowired
-    NoticeSvc noticeSvc;
+    private final MiscSvc inquirySvc;
+    private final NoticeSvc noticeSvc;
+    private final LogService logSvc;
 
     @Operation(summary = "공지사항 가져오기 [토큰 불필요]", description = "가장 최근의 공지사항을 반환합니다.")
     @ApiResponses(value = {
@@ -38,8 +40,7 @@ public class MiscController {
             @ApiResponse(responseCode = "400", description = "오류")
     })
     @GetMapping("/notice")
-    public ResponseEntity<NoticeDTO> getRecentNotice() 
-    {                
+    public ResponseEntity<NoticeDTO> getRecentNotice() {
         NoticeDTO dto = new NoticeDTO();
         try {
             Notice notice = noticeSvc.findRecentNotice();
@@ -63,11 +64,13 @@ public class MiscController {
     public ResponseEntity<Void> uploadInquiry(
             @RequestBody InquiryDTO inquiry,
             HttpServletRequest request) {
+        User user = (User) request.getAttribute("user");
         try {
-            User user = (User) request.getAttribute("user");
             inquirySvc.saveInquiry(user, inquiry);
+            logSvc.createLog(0, user, "유저가 문의를 등록했습니다");
+
         } catch (Exception e) {
-            System.err.println(e);
+            logSvc.createLog(2, user, "문의 등록에 오류가 발생했습니다");
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
         return ResponseEntity.status(HttpStatus.CREATED).build();

@@ -138,10 +138,18 @@ public class NoticeController {
         }
 
         try {
+            Admin author = adminService.findAdmin(Integer.parseInt(request.getAdmin_id()));
+            if (author == null) {
+                response.put("result_code", 400);
+                response.put("message", "Admin not found");
+                return ResponseEntity.badRequest().body(response);
+            }
+
             Notice notice = noticeService.updateNotice(
                     noticeId,
                     request.getTitle(),
-                    request.getContent()
+                    request.getContent(),
+                    author
             );
 
             Map<String, Object> noticeData = new HashMap<>();
@@ -163,10 +171,19 @@ public class NoticeController {
 
     // 공지사항 삭제
     @DeleteMapping("/{noticeId}")
-    public ResponseEntity<Map<String, Object>> deleteNotice(@PathVariable Integer noticeId) {
+    public ResponseEntity<Map<String, Object>> deleteNotice(
+            @PathVariable Integer noticeId,
+            @RequestParam("admin_id") String adminId) {
         Map<String, Object> response = new HashMap<>();
         try {
-            noticeService.deleteNotice(noticeId);
+            Admin author = adminService.findAdmin(Integer.parseInt(adminId));
+            if (author == null) {
+                response.put("result_code", 400);
+                response.put("message", "Admin not found");
+                return ResponseEntity.badRequest().body(response);
+            }
+
+            noticeService.deleteNotice(noticeId, author);
             response.put("result_code", 200);
             response.put("message", "Notice deleted successfully");
         } catch (Exception e) {

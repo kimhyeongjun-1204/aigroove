@@ -68,7 +68,7 @@ public class BadgeController {
             @ApiResponse(responseCode = "200", description = "로그인 성공", content = @Content(schema = @Schema(implementation = JwtResponse.class))),
             @ApiResponse(responseCode = "401", description = "패스워드 오류")
     })
-    @PutMapping("/status")
+    @PutMapping("/status/play")
     public ResponseEntity<Void> updateBadgeStatus(
         @RequestBody List<BadgeDTO> badgeStatus,
         HttpServletRequest request

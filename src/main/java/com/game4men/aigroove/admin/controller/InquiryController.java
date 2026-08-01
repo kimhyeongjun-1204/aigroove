@@ -1,7 +1,9 @@
 package com.game4men.aigroove.admin.controller;
 
-import com.game4men.aigroove.admin.DTO.InquiryResponse;
+import com.game4men.aigroove.admin.dto.InquiryResponse;
 import com.game4men.aigroove.admin.service.InquirySvc;
+import com.game4men.aigroove.admin.service.AdminSvc;
+import com.game4men.aigroove.common.entity.Admin;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -15,6 +17,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class InquiryController {
     private final InquirySvc inquirySvc;
+    private final AdminSvc adminService;
 
     // 문의 목록 조회 및 검색
     @GetMapping({"", "/search"})
@@ -74,7 +77,15 @@ public class InquiryController {
             String title = request.get("title");
             String content = request.get("content");
             
-            inquirySvc.answerInquiry(inquiryId, title, content);
+            Admin author = adminService.findAdmin(Integer.parseInt(adminId));
+            if (author == null) {
+                response.put("result_code", 400);
+                response.put("success", false);
+                response.put("message", "관리자를 찾을 수 없습니다.");
+                return ResponseEntity.badRequest().body(response);
+            }
+            
+            inquirySvc.answerInquiry(inquiryId, title, content, author);
             
             response.put("result_code", 200);
             response.put("success", true);

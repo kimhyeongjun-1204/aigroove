@@ -1,6 +1,7 @@
 package com.game4men.aigroove.game.controller;
 
 import com.game4men.aigroove.game.DTO.UserDTO;
+import com.game4men.aigroove.game.service.LogService;
 import com.game4men.aigroove.game.service.UserSvc;
 import com.game4men.aigroove.game.DTO.LoginRequest;
 import com.game4men.aigroove.common.entity.User;
@@ -26,8 +27,8 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "유저 API", description = "유저 기능 API")
 @RequiredArgsConstructor
 public class UserController {
-    @Autowired
-    UserSvc userSvc;
+    private final UserSvc userSvc;
+    private final LogService logSvc;
 
     @Operation(summary = "로그인 [토큰 불필요]", description = "로그인 처리 후 토큰을 반환합니다.")
     @ApiResponses(value = {
@@ -39,9 +40,11 @@ public class UserController {
             @RequestBody LoginRequest loginRequest) {
         try {
             JwtResponse jwtResponse = userSvc.login(loginRequest);
+            User user = userSvc.findUserByUsername(jwtResponse.getUsername());
+            logSvc.createLog(0, user, "유저가 로그인했습니다");
             return ResponseEntity.ok(jwtResponse);
         } catch (Exception e) {
-            System.err.println(e);
+            logSvc.createLog(1, null, "유저가 로그인에 실패했습니다");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
     }
@@ -56,12 +59,13 @@ public class UserController {
     public ResponseEntity<?> signup(
             @RequestBody UserDTO request) {
         try {
-            userSvc.signup(request);
+            User user = userSvc.signup(request);
+            logSvc.createLog(0, user, "유저가 회원가입에 성공했습니다");
         } catch (Exception e) {
-            if (e instanceof DuplicateKeyException){
+            logSvc.createLog(1, null, "유저가 회원가입에 실패했습니다");
+            if (e instanceof DuplicateKeyException) {
                 return ResponseEntity.status(HttpStatus.CONFLICT).body("중복된 유저 아이디입니다.");
             }
-            System.err.println(e);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
         return ResponseEntity.status(HttpStatus.CREATED).build();
@@ -69,18 +73,16 @@ public class UserController {
 
     @Operation(summary = "로그아웃", description = "로그아웃 처리 후 서버에 로그를 남깁니다.")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "성공"),
-        @ApiResponse(responseCode = "400", description = "오류")
+            @ApiResponse(responseCode = "200", description = "성공"),
+            @ApiResponse(responseCode = "400", description = "오류")
     })
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(
             HttpServletRequest request) {
         try {
             User user = (User) request.getAttribute("user");
-            System.out.println(user);
-            // log 남기기
+            logSvc.createLog(0, user, "유저가 로그아웃했습니다");
         } catch (Exception e) {
-            System.err.println(e);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
         return ResponseEntity.ok().build();
@@ -88,8 +90,8 @@ public class UserController {
 
     @Operation(summary = "튜토리얼 완료", description = "튜토리얼 완료 정보를 업데이트합니다.")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "성공"),
-        @ApiResponse(responseCode = "400", description = "오류")
+            @ApiResponse(responseCode = "200", description = "성공"),
+            @ApiResponse(responseCode = "400", description = "오류")
     })
     @GetMapping("/tutorial_complete")
     public ResponseEntity<Void> complete_tutorial(
@@ -97,8 +99,8 @@ public class UserController {
         try {
             User user = (User) request.getAttribute("user");
             userSvc.completeTutorial(user);
+            logSvc.createLog(0, user, "유저가 튜토리얼을 완료했습니다");
         } catch (Exception e) {
-            System.err.println(e);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
         return ResponseEntity.ok().build();
@@ -115,9 +117,9 @@ public class UserController {
             HttpServletRequest request) {
         try {
             User user = (User) request.getAttribute("user");
+            logSvc.createLog(0, user, "유저가 회원 탈퇴를 시도했습니다");
             userSvc.deleteAccount(user);
         } catch (Exception e) {
-            System.err.println(e);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
         return ResponseEntity.ok().build();

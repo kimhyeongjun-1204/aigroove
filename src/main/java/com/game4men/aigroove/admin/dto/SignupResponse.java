@@ -1,4 +1,4 @@
-package com.game4men.aigroove.admin.DTO;
+package com.game4men.aigroove.admin.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
