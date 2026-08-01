@@ -29,7 +29,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             filterChain.doFilter(request, response);
             return;
         }
-        
+
         // Authorization 헤더에서 토큰 추출
         String token = extractToken(request);
 
@@ -38,8 +38,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String username = jwtUtils.getUsernameFromToken(token);
 
             // 사용자 정보 조회
-            User user = userRepository.findByUsername(username).orElse(null);
-            System.err.println(user);
+            User user = userRepository.findByUsername(username)
+                    .orElse(null);
 
             if (user != null) {
                 // 사용자 정보를 요청 속성에 설정
