@@ -14,7 +14,7 @@
 | **팀 구성** | 4인 (가천대학교 종합프로젝트) |
 | **담당 역할** | 관리자 백오피스 풀스택 단독 개발 (프론트엔드 + 백엔드 API/서비스) |
 | **개발 규모** | REST API 33개 · React 페이지 20개 · JPA Entity 15개 · Service 9개 · DTO 15개 |
-| **GitHub** | [Backend (Spring Boot)](https://github.com/kimhyeongjun-1204/aigroove) · [Admin Frontend (React)](https://github.com/kimhyeongjun-1204/aigroove-admin-front) |
+| **GitHub** | [Backend (Spring Boot)](https://github.com/kimhyeongjun-1204/aigroove) · [Admin Frontend (React)](https://github.com/kimhyeongjun-1204/aigroove-admin) |
 
 <br>
 
