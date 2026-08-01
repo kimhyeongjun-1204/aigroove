@@ -1,37 +1,43 @@
-HELP.md
-.gradle
+# Build / IDE
+node_modules/
 build/
-!gradle/wrapper/gradle-wrapper.jar
-!**/src/main/**/build/
-!**/src/test/**/build/
-
-### STS ###
-.apt_generated
-.classpath
-.factorypath
-.project
-.settings
-.springBeans
-.sts4-cache
 bin/
-!**/src/main/**/bin/
-!**/src/test/**/bin/
-
-### IntelliJ IDEA ###
-.idea
-*.iws
+.gradle/
+.idea/
+*.class
+.settings/
+.project
+.classpath
 *.iml
-*.ipr
-out/
-!**/src/main/**/out/
-!**/src/test/**/out/
 
-### NetBeans ###
-/nbproject/private/
-/nbbuild/
-/dist/
-/nbdist/
-/.nb-gradle/
+# PyTorch model files
+*.pth
 
-### VS Code ###
-.vscode/
+# JVM crash logs
+hs_err_pid*.log
+replay_pid*.log
+
+# Runtime artifacts
+nohup.out
+logs/
+
+# Training / generated data
+train-models/
+train-files/
+generated-images/
+data/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+*.env.local
+
+# 시크릿이 포함된 설정 파일 (application-example.properties 를 템플릿으로 사용)
+application.properties
+application.yml
+application-*.properties
+application-*.yml
+!application-example.properties
