@@ -17,8 +17,10 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import com.game4men.aigroove.common.utils.JwtAuthenticationFilter;
 import com.game4men.aigroove.common.utils.JwtUtils;
+import com.game4men.aigroove.common.repository.LoginRepository;
 import com.game4men.aigroove.common.repository.UserRepository;
 
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 
 
@@ -29,6 +31,7 @@ public class SecurityConfig {
 
     private final JwtUtils jwtUtils;
     private final UserRepository userRepository;
+    private final LoginRepository loginRepository;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -47,8 +50,14 @@ public class SecurityConfig {
                 .requestMatchers("/admin/**").authenticated()
                 .anyRequest().permitAll()
             )
+            // 인증 정보가 없는 요청은 403이 아니라 401로 응답한다.
+            // (스프링 시큐리티 기본값은 Http403ForbiddenEntryPoint)
+            .exceptionHandling(ex -> ex
+                .authenticationEntryPoint((req, res, e) ->
+                    res.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized"))
+            )
             .addFilterBefore(
-                new JwtAuthenticationFilter(jwtUtils, userRepository),
+                new JwtAuthenticationFilter(jwtUtils, userRepository, loginRepository),
                 UsernamePasswordAuthenticationFilter.class
             );
 

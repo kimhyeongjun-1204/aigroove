@@ -1,30 +1,16 @@
 package com.game4men.aigroove.common.config;
-import com.game4men.aigroove.common.utils.JwtUtils;
-import com.game4men.aigroove.common.utils.JwtAuthenticationFilter;
-import com.game4men.aigroove.common.repository.UserRepository;
 
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.web.servlet.FilterRegistrationBean;
 
+/**
+ * JwtAuthenticationFilter는 SecurityConfig의 SecurityFilterChain에만 등록한다.
+ * 여기서 FilterRegistrationBean으로 중복 등록하면 시큐리티 체인 밖에도 같은 필터가
+ * 붙어, 인가 규칙과 무관하게 동작하는 경로가 생긴다.
+ */
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
-    @Autowired
-    private JwtUtils jwtUtils;
-    @Autowired
-    private UserRepository userRepository;
-
-    @Bean
-    public FilterRegistrationBean<JwtAuthenticationFilter> jwtAuthenticationFilter() {
-        FilterRegistrationBean<JwtAuthenticationFilter> registrationBean = new FilterRegistrationBean<>();
-        registrationBean.setFilter(new JwtAuthenticationFilter(jwtUtils, userRepository));
-        registrationBean.addUrlPatterns("/api/game/*"); // 모든 API 엔드포인트에 적용
-        registrationBean.setOrder(1); // 필터 순서 설정
-        return registrationBean;
-    }
 
     // @Override
     // public void addViewControllers(ViewControllerRegistry registry) {
