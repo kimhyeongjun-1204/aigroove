@@ -17,6 +17,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -47,20 +48,27 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 && SecurityContextHolder.getContext().getAuthentication() == null) {
 
             String username = jwtUtils.getUsernameFromToken(token);
+            String type = jwtUtils.getTypeFromToken(token);
 
-            // 토큰에는 username만 담겨 있어 소속을 알 수 없다.
-            // 관리자(admin)를 먼저 조회하고, 없으면 게임 유저(user)에서 찾는다.
-            Admin admin = loginRepository.findByUsername(username).orElse(null);
-            if (admin != null) {
-                String role = admin.getRole() != null
-                        ? "ROLE_" + admin.getRole().name()
-                        : "ROLE_ADMIN";
-                setAuthentication(request, username, role);
-                request.setAttribute("admin", admin);
+            // admin과 user는 별도 테이블이라 username이 겹칠 수 있다.
+            // 토큰이 가리키는 쪽에서만 조회한다. type이 없는 예전 토큰은 게임 유저로 취급.
+            if ("ADMIN".equals(type)) {
+                Admin admin = loginRepository.findByUsername(username).orElse(null);
+                if (admin != null) {
+                    // 관리자 공통 권한과 세부 역할을 함께 부여한다.
+                    // Admin.Role 에도 USER 가 있어 게임 유저와 구분하려면 ROLE_ADMIN 이 필요하다.
+                    List<String> authorities = new ArrayList<>();
+                    authorities.add("ROLE_ADMIN");
+                    if (admin.getRole() != null) {
+                        authorities.add("ROLE_" + admin.getRole().name());
+                    }
+                    setAuthentication(request, username, authorities);
+                    request.setAttribute("admin", admin);
+                }
             } else {
                 User user = userRepository.findByUsername(username).orElse(null);
                 if (user != null) {
-                    setAuthentication(request, username, "ROLE_USER");
+                    setAuthentication(request, username, List.of("ROLE_USER"));
                     request.setAttribute("user", user);
                 }
             }
@@ -71,10 +79,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
-    private void setAuthentication(HttpServletRequest request, String username, String authority) {
+    private void setAuthentication(HttpServletRequest request, String username, List<String> authorities) {
+        List<SimpleGrantedAuthority> granted = authorities.stream()
+                .map(SimpleGrantedAuthority::new)
+                .toList();
         UsernamePasswordAuthenticationToken authentication =
-                new UsernamePasswordAuthenticationToken(
-                        username, null, List.of(new SimpleGrantedAuthority(authority)));
+                new UsernamePasswordAuthenticationToken(username, null, granted);
         authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
         SecurityContextHolder.getContext().setAuthentication(authentication);
     }

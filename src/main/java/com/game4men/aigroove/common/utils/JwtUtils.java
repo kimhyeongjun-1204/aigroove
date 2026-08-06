@@ -29,12 +29,13 @@ public class JwtUtils {
         this.key = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
     }
     
-    public String generateToken(String username) {
+    public String generateToken(String username, String type) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + jwtExpiration);
         
         return Jwts.builder()
                 .setSubject(username)
+                .claim("type", type)          // "ADMIN" | "USER"
                 .setIssuedAt(now)
                 .setExpiration(expiryDate)
                 .signWith(key)  // 초기화된 키 사용
@@ -57,6 +58,16 @@ public class JwtUtils {
                 .parseClaimsJws(token)
                 .getBody();
         return claims.getSubject();
+    }
+
+    /** 토큰 발급 주체 구분. "ADMIN" 또는 "USER", 없으면 null */
+    public String getTypeFromToken(String token) {
+        Claims claims = Jwts.parserBuilder()
+                .setSigningKey(key)
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+        return claims.get("type", String.class);
     }
 
     // public boolean validateToken(String token) {

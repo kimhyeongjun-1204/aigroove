@@ -47,7 +47,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/game/**").permitAll()
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                 .requestMatchers("/", "/index.html", "/static/**", "/*.js", "/*.css", "/*.ico", "/*.png", "/*.json").permitAll()
-                .requestMatchers("/admin/**").authenticated()
+                .requestMatchers("/admin/**").hasRole("ADMIN")
                 .anyRequest().permitAll()
             )
             // 인증 정보가 없는 요청은 403이 아니라 401로 응답한다.
