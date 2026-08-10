@@ -38,7 +38,7 @@ public class UserSvc {
             // return null;
             throw new RuntimeException("Invalid password");
         }
-        String token = jwtUtils.generateToken(user.getUsername());
+        String token = jwtUtils.generateToken(user.getUsername(), "USER");
 
         LocalDate today = LocalDate.now();
         // 기존 로그 있는지 확인

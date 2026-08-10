@@ -41,3 +41,6 @@ application.yml
 application-*.properties
 application-*.yml
 !application-example.properties
+logs/
+generated-images/
+env.ps1

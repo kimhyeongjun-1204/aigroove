@@ -38,7 +38,7 @@ public class LoginSvc {
             return ResponseEntity.ok(new LoginResponse(402, "", "", -1, null));
         }
 
-        String token = jwtUtil.generateToken(admin.getUsername());
+        String token = jwtUtil.generateToken(admin.getUsername(), "ADMIN");
         return ResponseEntity.ok(new LoginResponse(201, token, admin.getName(),admin.getAdminId(), admin.getRole())); // 성공
     }
 
