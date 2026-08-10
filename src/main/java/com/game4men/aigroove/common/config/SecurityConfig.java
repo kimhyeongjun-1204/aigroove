@@ -44,7 +44,9 @@ public class SecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/admin/login", "/admin/signup").permitAll()
-                .requestMatchers("/api/game/**").permitAll()
+                .requestMatchers("/api/game/user/login", "/api/game/user/signup").permitAll()
+                .requestMatchers("/api/game/notice/**", "/api/game/ranking/**").permitAll()
+                .requestMatchers("/api/game/**").authenticated()
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                 .requestMatchers("/", "/index.html", "/static/**", "/*.js", "/*.css", "/*.ico", "/*.png", "/*.json").permitAll()
                 .requestMatchers("/admin/**").hasRole("ADMIN")
