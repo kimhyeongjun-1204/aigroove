@@ -57,7 +57,7 @@
 │  ┌──────────────────────────────────────┐│                        │
 │  │  Common 모듈 ⭐                       ││                        │
 │  │  SecurityConfig, JwtUtils,           ││                        │
-│  │  JwtAuthenticationFilter, WebConfig  ││                        │
+│  │  JwtAuthenticationFilter             ││                        │
 │  └──────────────────────────────────────┘│                        │
 └──────────────────────────────────────────│────────────────────────┘
                                            ▼
@@ -76,14 +76,15 @@
 
 ### 1. 로그인 / 회원가입
 
-Spring Security + JWT 기반 Stateless 인증 시스템입니다. BCrypt 비밀번호 암호화, HMAC-SHA256 JWT 서명을 적용했습니다.
+Spring Security + JWT 기반 Stateless 인증 시스템입니다. BCrypt 비밀번호 암호화, HMAC-SHA512 JWT 서명을 적용했습니다.
 
 <p align="center">
   <img src="./aigroove-admin-screenshots/login.jpg" width="80%"/>
 </p>
 
 - `JwtUtils`에서 토큰 생성·검증, `JwtAuthenticationFilter`에서 요청 헤더의 Bearer 토큰 추출 및 인증 처리
-- `SecurityConfig`에서 `/admin/**` 경로 인증 필수, 로그인·회원가입·정적 리소스만 `permitAll`
+- `SecurityConfig`에서 `/admin/**`은 `hasRole("ADMIN")` 요구, 로그인·회원가입·정적 리소스만 `permitAll`
+- JWT에 발급 주체(`type`) 클레임을 담아 관리자 토큰과 게임 유저 토큰을 구분
 - 프론트엔드 `ProtectedRoute` 컴포넌트로 미인증 사용자 리다이렉트, Axios 인터셉터로 401 응답 시 자동 로그아웃
 
 ---
@@ -368,9 +369,8 @@ src/main/java/com/game4men/aigroove/
 │
 └── common/                                 # ⭐ 공통 모듈 (담당)
     ├── config/
-    │   ├── SecurityConfig.java                # Spring Security + JWT 필터 설정
-    │   ├── SwaggerConfig.java                 # Swagger API 문서 설정
-    │   └── WebConfig.java                     # CORS + JWT 필터 등록
+    │   ├── SecurityConfig.java                # Spring Security + CORS + JWT 필터 등록
+    │   └── SwaggerConfig.java                 # Swagger API 문서 설정
     ├── entity/                                # JPA Entity 15개
     │   ├── Admin.java                         # 관리자 (Role: MASTER/USER/AI)
     │   ├── User.java                          # 사용자
@@ -403,7 +403,7 @@ src/main/java/com/game4men/aigroove/
     │   ├── GameStatusRepository.java
     │   └── BadgeRepository.java
     └── utils/
-        ├── JwtUtils.java                      # JWT 토큰 생성/검증 (HMAC-SHA256)
+        ├── JwtUtils.java                      # JWT 토큰 생성/검증 (HMAC-SHA512)
         └── JwtAuthenticationFilter.java       # Bearer 토큰 추출 + 인증 필터
 ```
 
@@ -464,7 +464,23 @@ src/
 ## 핵심 구현 사항
 
 ### JWT 기반 Stateless 인증 시스템
-`JwtUtils`에서 HMAC-SHA256 서명으로 토큰을 생성하고, `JwtAuthenticationFilter`(OncePerRequestFilter)에서 Bearer 토큰을 추출·검증합니다. `SecurityConfig`에서 `SessionCreationPolicy.STATELESS`로 세션을 사용하지 않으며, `/admin/login`, `/admin/signup`만 `permitAll`, 나머지 `/admin/**`은 인증을 요구합니다. 프론트엔드에서는 Axios 요청 인터셉터로 토큰을 자동 첨부하고, 응답 인터셉터로 401 수신 시 자동 로그아웃 처리합니다.
+`JwtUtils`에서 HMAC-SHA512 서명으로 토큰을 생성하고, `JwtAuthenticationFilter`(OncePerRequestFilter)에서 Bearer 토큰을 추출·검증합니다. `SecurityConfig`에서 `SessionCreationPolicy.STATELESS`로 세션을 사용하지 않습니다. 프론트엔드에서는 Axios 요청 인터셉터로 토큰을 자동 첨부하고, 응답 인터셉터로 401 수신 시 자동 로그아웃 처리합니다.
+
+**인증과 인가의 역할 분리** — 필터는 인증만 담당합니다. 토큰이 유효하면 `SecurityContextHolder`에 권한 정보를 저장하고, 유효하지 않으면 아무것도 하지 않은 채 다음 필터로 넘깁니다. 접근 거부 여부는 `SecurityConfig`의 인가 규칙이 판단합니다. 필터가 직접 응답을 만들면 공개 경로 목록을 필터와 설정 양쪽에서 관리하게 되어 두 곳이 어긋날 수 있기 때문입니다.
+
+**토큰 발급 주체 구분** — 관리자(`admin`)와 게임 유저(`user`)는 별도 테이블이라 username이 겹칠 수 있습니다. JWT에 `type` 클레임(`ADMIN` / `USER`)을 담아 필터가 조회할 테이블을 확정하고, 관리자에게는 `ROLE_ADMIN`과 세부 역할(`MASTER` / `AI` / `USER`)을 함께 부여합니다.
+
+**상태 코드 구분** — `authenticationEntryPoint`를 지정해 인증 정보가 없는 요청은 401, 인증됐지만 권한이 부족한 요청은 403을 반환합니다. (스프링 시큐리티 기본값은 두 경우 모두 403)
+
+```java
+.requestMatchers("/admin/login", "/admin/signup").permitAll()
+.requestMatchers("/api/game/user/login", "/api/game/user/signup").permitAll()
+.requestMatchers("/api/game/notice/**", "/api/game/ranking/**").permitAll()
+.requestMatchers("/api/game/**").authenticated()
+.requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+.requestMatchers("/", "/index.html", "/static/**", "/*.js", "/*.css", "/*.ico", "/*.png", "/*.json").permitAll()
+.requestMatchers("/admin/**").hasRole("ADMIN")
+```
 
 ### 관리자 승인 프로세스 (3단계 역할)
 신규 관리자가 회원가입하면 `signupDate = null` 상태로 저장됩니다. 기존 관리자(MASTER)가 승인 처리 시 `signupDate`를 설정하고 역할(MASTER/USER/AI)을 부여합니다. `signupDate == null`이면 로그인 자체가 거부되어 무분별한 관리자 계정 생성을 방지합니다.
@@ -506,6 +522,49 @@ long total = userRepository.findAll().stream()
 @Query("SELECT COALESCE(SUM(u.uploadedSongCount), 0) FROM User u")
 Long sumUploadedSongCount();
 ```
+
+<br>
+
+## 테스트
+
+인증·인가는 필터·시큐리티 설정·컨트롤러가 함께 동작해야 결과가 결정되므로, 단위 테스트로는 검증이 어렵다고 판단해 `@SpringBootTest` + `MockMvc` 통합 테스트로 작성했습니다.
+
+| 검증 항목 | 요청 | 기대 |
+|---|---|---|
+| 인증 없음 | 토큰 없이 `GET /admin/dashboard` | 401 |
+| 위조 토큰 | 서명이 다른 토큰 | 401 |
+| **권한 부족** | 게임 유저 토큰으로 `GET /admin/dashboard` | **403** |
+| 정상 접근 | 관리자 토큰으로 `GET /admin/dashboard` | 200 |
+| 게임 API 보호 | 토큰 없이 `GET /api/game/badge/status/all` | 401 |
+| 입력값 검증 | 빈 제목으로 `PUT /admin/notice/{id}` | 400 + 검증 메시지 |
+
+`@BeforeEach`에서 관리자와 게임 유저에게 **같은 username을 부여**합니다. `admin`과 `user`가 별도 테이블이라 이름이 겹칠 수 있고, 실제로 그 상황에서 권한 상승이 가능했기 때문에 그 조건을 테스트 환경에 재현해 두었습니다.
+
+```java
+@BeforeEach
+void setUp() {
+    // 관리자와 게임 유저가 같은 username을 사용하는 상황을 만든다
+    admin.setUsername(SHARED_USERNAME);
+    user.setUsername(SHARED_USERNAME);
+
+    adminToken    = jwtUtils.generateToken(SHARED_USERNAME, "ADMIN");
+    gameUserToken = jwtUtils.generateToken(SHARED_USERNAME, "USER");
+}
+```
+
+**테스트가 유효한지 확인** — 작성 후 `SecurityConfig`의 `hasRole("ADMIN")`을 `authenticated()`로 되돌린 상태에서 실행했고, 권한 부족 테스트만 실패하는 것을 확인한 뒤 원복했습니다.
+
+```
+Status expected:<403> but was:<200>
+```
+
+통과만 보고는 그 테스트가 실제로 무엇을 검증하는지 알 수 없다고 판단해 이 과정을 거쳤습니다. 실제로 초기 작성 시 요청에 토큰을 싣는 코드를 빠뜨렸는데도 테스트가 통과한 경우가 있었습니다.
+
+```bash
+./gradlew test --tests "*AdminAuthIntegrationTest*"
+```
+
+테스트는 로컬 MariaDB를 사용하며, 생성한 데이터는 `@Transactional`로 롤백됩니다. 대시보드 집계에 `SUM`·`COALESCE` 같은 DB 함수를 쓰고 있어 H2로 대체하면 방언 차이가 생길 수 있다고 보고 운영과 같은 DBMS를 사용했습니다.
 
 <br>
 
@@ -569,6 +628,9 @@ public String redirect() {
 ```
 
 > 처음에는 `WebConfig.java`의 `addViewController`에서 시도했으나 정적 파일까지 포워딩되는 문제가 있어, 별도 `@Controller`로 분리하고 정규표현식으로 확장자 있는 경로를 제외했습니다.
+>
+> 이후 `WebConfig`는 남은 역할이 없어져 제거했고, CORS 설정은 `SecurityConfig`로 통합했습니다.
+> 위 인가 규칙도 현재는 `/admin/**`에 `hasRole("ADMIN")`을 적용하는 형태로 바뀌었습니다.
 
 ---
 
@@ -598,6 +660,69 @@ export const SERVER_URL = ''; // 상대 경로 → 배포 서버 자기 자신�
 1. **`findTop` 패턴 적용**: 결과가 여러 건이어도 첫 번째만 반환하도록 `findTopByOrderBy...Desc()` 메서드로 변경 (AdminRepository, LoginRepository, NoticeRepository, ModelInfoRepository 총 4곳)
 2. **비즈니스 로직으로 중복 방지**: `AiModelSvc.selectModel()`에서 전체 모델을 `selected=false`로 초기화한 뒤 선택 모델만 `true`로 설정하여 `selected=true`가 중복되는 상황을 원천 차단
 
+---
+
+### 5. 인가 검증 누락으로 인한 권한 상승
+
+**문제**: 관리자 API에 인증을 적용한 뒤 직접 요청을 보내 확인하던 중, **게임 유저 토큰으로도 `/admin/dashboard`가 200을 반환**하는 것을 발견했습니다. 사용자 통계와 시스템 로그가 그대로 노출됐습니다.
+
+**원인**: 세 가지가 겹쳐 있었습니다.
+
+1. `admin`과 `user`는 별도 테이블이고 각자 중복 검사만 하므로 **username이 겹칠 수 있음**. 게임 회원가입은 공개 API라 관리자와 같은 이름으로 가입이 가능했습니다.
+2. 두 로그인이 발급하는 JWT가 형식이 같아 **토큰만으로는 발급 주체를 구분할 수 없음**
+3. `/admin/**`이 `.authenticated()`만 요구해, **이름이 겹치지 않아도 인증된 게임 유저면 통과**
+
+`.authenticated()`는 "인증된 사용자인가"만 검사하고 어떤 권한인지는 보지 않습니다. 인증(Authentication)과 인가(Authorization)를 구분하지 않은 것이 원인이었습니다.
+
+**해결**: 토큰에 발급 주체를 담고, 인가 조건을 권한 기반으로 바꿨습니다.
+
+```java
+// 1) 발급 시 주체를 클레임에 기록 — 서명에 포함되므로 위조 불가
+.claim("type", type)      // "ADMIN" | "USER"
+
+// 2) 필터는 토큰이 가리키는 테이블에서만 조회 (이름이 겹쳐도 교차 인증되지 않음)
+if ("ADMIN".equals(type)) {
+    Admin admin = loginRepository.findByUsername(username).orElse(null);
+    authorities.add("ROLE_ADMIN");
+    authorities.add("ROLE_" + admin.getRole().name());
+}
+
+// 3) 인가 조건을 권한 기반으로 전환
+.requestMatchers("/admin/**").hasRole("ADMIN")
+```
+
+관리자와 게임 유저에게 같은 username을 부여한 상태로 재검증했습니다.
+
+| 요청 | 수정 전 | 수정 후 |
+|---|---|---|
+| 토큰 없이 `/admin/dashboard` | 403 | **401** |
+| **게임 유저 토큰** | **200 (데이터 노출)** | **403** |
+| 관리자 토큰 | 403 | **200** |
+
+이 조건들은 그대로 통합 테스트로 옮겨 회귀를 방지하도록 했습니다.
+
+> **남은 과제** — `admin.username` / `user.username`에 DB 유니크 제약이 없어, 중복 방지가 애플리케이션 코드에만 의존하고 있습니다. 트러블슈팅 4의 `NonUniqueResultException`도 같은 뿌리에서 나온 문제로 보고 있으며, 유니크 인덱스 추가를 다음 개선 과제로 두고 있습니다.
+
+---
+
+### 6. 인가 책임을 옮기면서 발생한 회귀
+
+**문제**: 5번을 수정하며 필터가 담당하던 인가 판단을 `SecurityConfig`로 옮겼는데, 토큰 없이 게임 API를 호출하면 **401이 아니라 500**이 반환됐습니다.
+
+**원인**: 기존 필터는 인증되지 않은 요청을 직접 401로 거부했고, 그 판단 기준이 필터 내부의 경로 목록이었습니다. 이 목록을 제거하면서 **관리자 경로 규칙은 `SecurityConfig`로 옮겼지만 게임 경로 규칙은 누락**했습니다. 그 결과 요청이 컨트롤러까지 도달했고, `request.getAttribute("user")`가 `null`인 상태로 사용되어 예외가 발생했습니다.
+
+**해결**: 필터에 있던 경로 목록을 인가 규칙으로 옮겨 복원했습니다.
+
+```java
+.requestMatchers("/api/game/user/login", "/api/game/user/signup").permitAll()
+.requestMatchers("/api/game/notice/**", "/api/game/ranking/**").permitAll()
+.requestMatchers("/api/game/**").authenticated()
+```
+
+기존 목록이 잘못된 정보였던 것이 아니라 **위치가 잘못돼 있었습니다.** 공개 경로 정의가 필터와 설정 두 곳에 존재하면 서로 어긋날 수 있어, `SecurityConfig` 한 곳으로 모으는 것이 원래 의도였습니다.
+
+책임을 옮길 때는 옮긴 쪽이 빠짐없이 받았는지 확인해야 한다는 것을 배웠고, 이 경로도 통합 테스트에 포함시켰습니다.
+
 <br>
 
 ## 팀 구성
@@ -618,19 +743,31 @@ export const SERVER_URL = ''; // 상대 경로 → 배포 서버 자기 자신�
 git clone https://github.com/kimhyeongjun-1204/aigroove.git
 cd aigroove
 
-# application.properties에서 DB 설정 수정
-# spring.datasource.url=jdbc:mariadb://localhost:3306/aigroove
-# spring.datasource.username=[DB_USERNAME]
-# spring.datasource.password=[DB_PASSWORD]
+# 1) 설정 파일 생성 — 실제 값은 환경변수로 주입됩니다
+cp src/main/resources/application-example.properties src/main/resources/application.properties
 
-./gradlew build
+# 2) MariaDB에 스키마 생성
+#    CREATE DATABASE aigroove;
+
+# 3) 환경변수 설정
+export DB_USERNAME=root
+export DB_PASSWORD=<DB 비밀번호>
+export JWT_SECRET=$(openssl rand -hex 64)   # 64바이트 이상 필수 (HS512)
+export MAIL_USERNAME=<Gmail 계정>            # 메일 발송을 쓰지 않으면 임의 값
+export MAIL_APP_                                                                                                                                                                    PASSWORD=<Gmail 앱 비밀번호>
+
 ./gradlew bootRun
 ```
 
-### Frontend
+> Windows PowerShell에서는 `$env:DB_USERNAME = "root"` 형식으로 설정합니다.
+>
+> 시크릿이 저장소에 커밋되지 않도록 `application.properties`는 `.gitignore`에 등록되어 있고,
+> 필요한 키 목록만 `application-example.properties`로 관리합니다.
+
+### Frontend    
 ```bash
-git clone https://github.com/kimhyeongjun-1204/aigroove-admin-front.git
-cd aigroove-admin-front
+git clone https://github.com/kimhyeongjun-1204/aigroove-admin.git
+cd aigroove-admin
 npm install
 npm start
 ```
