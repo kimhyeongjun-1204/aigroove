@@ -112,12 +112,8 @@ class AdminAuthIntegrationTest {
     @Test
     @DisplayName("토큰 없이 게임 보호 API는 거부된다")
     void returns401_whenGameApiCalledWithoutToken() throws Exception {
-        String invalidToken = gameUserToken.substring(0, gameUserToken.lastIndexOf('.')) + ".WRONG_SIGNATURE";
-
-        mockMvc.perform(get("/api/game/badge/status/all")
-                .header("Authorization", "Bearer " + invalidToken))
+        mockMvc.perform(get("/api/game/badge/status/all"))
                 .andExpect(status().isUnauthorized());
-
     }
 
 }
