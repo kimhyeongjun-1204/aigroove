@@ -48,30 +48,53 @@
 
 <br>
 
-## 담당 범위
+## 아키텍처 및 담당 범위
 
 ```mermaid
-flowchart LR
-    subgraph mine["김형준 담당"]
-        direction LR
-        FE["Admin Frontend<br/>React 18 · 20 페이지"]
-        BE["Admin Backend<br/>Controller / DTO / Service"]
-        SEC["인증 · 보안<br/>Spring Security · JWT"]
-        AIAPI["AI API 계층<br/>Controller / DTO"]
-    end
+flowchart TB
+subgraph CLIENT[" "]
+ADMINWEB["Admin Web<br/>React 18 · 20 페이지"]
+GAMECLIENT["Game Client<br/>Unreal Engine"]
+end
 
-    AISVC["AI Service — 문유신 담당<br/>Model · Train · Dataset<br/>Python 학습 스크립트"]
+subgraph SERVER["Spring Boot 3.4.4"]
+AUTH["인증 · 인가<br/>JWT 필터 · SecurityConfig"]
+ADMIN["admin/<br/>Controller 13 · Service 9 · DTO 15"]
+AIAPI["admin/ai/<br/>Controller 3 · DTO 스키마"]
+GAMEMOD["game/<br/>게임 API"]
+end
 
-    FE <-->|REST API| BE
-    BE --- SEC
-    BE --> AIAPI
-    AIAPI -->|요청 위임| AISVC
+DB[("MariaDB<br/>Entity 15 · Repository 14")]
+AISVC["AI Service<br/>Python BiLSTM 학습"]
+SMTP["Gmail SMTP<br/>문의 답변 알림"]
 
-    style mine fill:#eef4ff,stroke:#4a7fd4
-    style AISVC fill:#f2f2f2,stroke:#999
+ADMINWEB -->|REST · Bearer| AUTH
+GAMECLIENT -->|REST · Bearer| AUTH
+AUTH --> ADMIN
+AUTH --> GAMEMOD
+ADMIN --> AIAPI
+AIAPI -->|위임| AISVC
+ADMIN -->|JPA| DB
+GAMEMOD -->|JPA| DB
+ADMIN -.-> SMTP
+
+classDef mine fill:#EEEDFE,stroke:#534AB7,stroke-width:2px,color:#26215C
+classDef other fill:#F1EFE8,stroke:#888780,color:#2C2C2A
+class ADMINWEB,AUTH,ADMIN,AIAPI mine
+class GAMECLIENT,GAMEMOD,AISVC,DB,SMTP other
 ```
 
-> ※ AI 기능은 Controller/DTO와 API 연동 계층을 담당했으며, 모델 학습과 Service 계층은 팀원이 담당했습니다.
+🟪 본인 담당 　⬜ 팀원 담당 · 인프라
+
+| 영역 | 범위 | 담당 |
+|---|---|---|
+| Admin Frontend | React 20페이지 · 공통 컴포넌트 10 · Axios 인터셉터 | 단독 |
+| Admin Backend | Controller 13 · Service 9 · DTO 15 (REST API 33개) | 단독 |
+| 인증 · 인가 | SecurityConfig · JWT 필터 · 통합 테스트 7건 | 단독 |
+| 공통 도메인 | Entity 15 · Repository 14 · N+1 최적화 | 단독 |
+| AI 연동 계층 | Controller 3 · 학습 요청 JSON 스키마 설계 | 단독 (스키마는 AI 팀원과 협의) |
+| AI 학습 서비스 | 모델 학습 로직 · Python 스크립트 | 팀원 |
+| 게임 서버 · 클라이언트 | 멀티플레이 API · Unreal Engine | 팀원 |
 
 <br>
 
@@ -213,35 +236,6 @@ JVM `ManagementFactory` API를 활용하여 서버 리소스를 실시간 조회
 
 <br>
 
-## 아키텍처
-
-```
-┌─────────────────────┐       ┌────────────────────────────────┐       ┌───────────┐
-│  Admin Frontend     │       │  Spring Boot Backend            │       │  MariaDB  │
-│  (React 18)         │──────▶│                                 │──────▶│           │
-│  React Router DOM   │  API  │  ┌─ admin/ ⭐ 담당              │  JPA  │  aigroove │
-│  Axios              │◀──────│  │  Controller (13개)           │◀──────│           │
-│                     │       │  │  Service (9개)               │       └───────────┘
-│  20 페이지          │       │  │  DTO (15개)                  │
-│  10 공통 컴포넌트   │       │  │                              │
-│  26 CSS             │       │  │  ┌ AI Controller (3개)       │
-└─────────────────────┘       │  │  └──▶ AI Service (팀원 담당) │
-                              │  │                              │
-                              │  ├─ game/ (팀원 담당)           │
-                              │  │                              │
-                              │  └─ common/ ⭐ 담당              │
-                              │     SecurityConfig + JWT 필터   │
-                              │     Entity (15개) / Repo (14개) │
-                              └────────────┬───────────────────┘
-                                           │
-                              ┌────────────▼───────────────┐
-                              │  JavaMailSender             │
-                              │  Gmail SMTP 문의 답변 알림  │
-                              └────────────────────────────┘
-```
-
-<br>
-
 ## API 명세 (실제 구현 기준 · 총 33개)
 
 ### 인증 (3개)
@@ -367,7 +361,7 @@ src/main/java/com/game4men/aigroove/
 │       ├── AiModelSvc.java                    # (AI 팀원 담당)
 │       └── AiTrainSvc.java                    # (AI 팀원 담당)
 │
-├── game/                                   # 게임 모듈 (김동현 담당)
+├── game/                                   # 게임 모듈 (팀원 담당)
 │   └── ...
 │
 └── common/                                 # ⭐ 공통 모듈 (담당)
@@ -519,7 +513,7 @@ AI 팀원과 학습 요청 JSON 스키마(`TrainingRequestDTO` + `TrainingParams
 ```java
 // 최적화 전: User 테이블 전체 로드 후 Java에서 합산
 long total = userRepository.findAll().stream()
-    .mapToInt(User::getUploadedSongCount).sum();
+                .mapToInt(User::getUploadedSongCount).sum();
 
 // 최적화 후: DB에서 SUM 집계 (단일 쿼리)
 @Query("SELECT COALESCE(SUM(u.uploadedSongCount), 0) FROM User u")
@@ -595,7 +589,7 @@ setTimeout(checkProgress, 1000);
 ```java
 // AiTrainSvc.java (line 114-120)
 if (!Files.exists(path)) {
-    Map<String, Object> statusMap = new HashMap<>();
+Map<String, Object> statusMap = new HashMap<>();
     statusMap.put("train_status", "waiting");
     return objectMapper.writeValueAsString(statusMap);
 }
@@ -685,13 +679,13 @@ export const SERVER_URL = ''; // 상대 경로 → 배포 서버 자기 자신�
 
 // 2) 필터는 토큰이 가리키는 테이블에서만 조회 (이름이 겹쳐도 교차 인증되지 않음)
 if ("ADMIN".equals(type)) {
-    Admin admin = loginRepository.findByUsername(username).orElse(null);
+Admin admin = loginRepository.findByUsername(username).orElse(null);
     authorities.add("ROLE_ADMIN");
     authorities.add("ROLE_" + admin.getRole().name());
-}
+        }
 
 // 3) 인가 조건을 권한 기반으로 전환
-.requestMatchers("/admin/**").hasRole("ADMIN")
+        .requestMatchers("/admin/**").hasRole("ADMIN")
 ```
 
 관리자와 게임 유저에게 같은 username을 부여한 상태로 재검증했습니다.
@@ -757,7 +751,7 @@ export DB_USERNAME=root
 export DB_PASSWORD=<DB 비밀번호>
 export JWT_SECRET=$(openssl rand -hex 64)   # 64바이트 이상 필수 (HS512)
 export MAIL_USERNAME=<Gmail 계정>            # 메일 발송을 쓰지 않으면 임의 값
-export MAIL_APP_                                                                                                                                                                    PASSWORD=<Gmail 앱 비밀번호>
+export MAIL_APP_PASSWORD=<Gmail 앱 비밀번호>
 
 ./gradlew bootRun
 ```
@@ -767,7 +761,7 @@ export MAIL_APP_                                                                
 > 시크릿이 저장소에 커밋되지 않도록 `application.properties`는 `.gitignore`에 등록되어 있고,
 > 필요한 키 목록만 `application-example.properties`로 관리합니다.
 
-### Frontend    
+### Frontend
 ```bash
 git clone https://github.com/kimhyeongjun-1204/aigroove-admin.git
 cd aigroove-admin
