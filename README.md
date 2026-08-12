@@ -50,35 +50,28 @@
 
 ## 담당 범위
 
+```mermaid
+flowchart LR
+    subgraph mine["김형준 담당"]
+        direction LR
+        FE["Admin Frontend<br/>React 18 · 20 페이지"]
+        BE["Admin Backend<br/>Controller / DTO / Service"]
+        SEC["인증 · 보안<br/>Spring Security · JWT"]
+        AIAPI["AI API 계층<br/>Controller / DTO"]
+    end
+
+    AISVC["AI Service — 문유신 담당<br/>Model · Train · Dataset<br/>Python 학습 스크립트"]
+
+    FE <-->|REST API| BE
+    BE --- SEC
+    BE --> AIAPI
+    AIAPI -->|요청 위임| AISVC
+
+    style mine fill:#eef4ff,stroke:#4a7fd4
+    style AISVC fill:#f2f2f2,stroke:#999
 ```
-┌──────────────────────────────────────────────────────────────────┐
-│                      김형준 담당 영역                             │
-│                                                                  │
-│  ┌─────────────────────┐    ┌──────────────────────────────────┐ │
-│  │  Admin Frontend     │    │  Admin Backend                   │ │
-│  │  (React 18) ⭐ 전체  │───▶│  ⭐ Controller + DTO + Service   │ │
-│  │                     │ API│  (인증, 사용자, 문의, 공지,       │ │
-│  │  20 페이지          │◀───│   대시보드, 로그, 서버 모니터링)  │ │
-│  │  10 공통 컴포넌트   │    │                                  │ │
-│  │  26 CSS 스타일시트  │    │  ⭐ AI API 연동 계층              │ │
-│  └─────────────────────┘    │  (Controller + DTO 설계)         │ │
-│                             └───────────┬──────────────────────┘ │
-│                                         │ 위임                    │
-│  ┌──────────────────────────────────────┐│                        │
-│  │  Common 모듈 ⭐                       ││                        │
-│  │  SecurityConfig, JwtUtils,           ││                        │
-│  │  JwtAuthenticationFilter             ││                        │
-│  └──────────────────────────────────────┘│                        │
-└──────────────────────────────────────────│────────────────────────┘
-                                           ▼
-                              ┌────────────────────────┐
-                              │  AI Service 계층        │
-                              │  (문유신 담당)          │
-                              │  AiModelSvc,AiTrainSvc, │
-                              │  AiDatasetSvc           │
-                              │  Python 학습 스크립트    │
-                              └────────────────────────┘
-```
+
+> ※ AI 기능은 Controller/DTO와 API 연동 계층을 담당했으며, 모델 학습과 Service 계층은 팀원이 담당했습니다.
 
 <br>
 
