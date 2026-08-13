@@ -90,7 +90,7 @@ class GAMECLIENT,GAMEMOD,AISVC,DB,SMTP other
 |---|---|---|
 | Admin Frontend | React 20페이지 · 공통 컴포넌트 10 · Axios 인터셉터 | 단독 |
 | Admin Backend | Controller 13 · Service 9 · DTO 15 (REST API 33개) | 단독 |
-| 인증 · 인가 | SecurityConfig · JWT 필터 · 통합 테스트 7건 | 단독 |
+| 인증 · 인가 | SecurityConfig · JWT 필터 · 통합 테스트 7건 | 공동 |
 | 공통 도메인 | Entity 15 · Repository 14 · N+1 최적화 | 단독 |
 | AI 연동 계층 | Controller 3 · 학습 요청 JSON 스키마 설계 | 단독 (스키마는 AI 팀원과 협의) |
 | AI 학습 서비스 | 모델 학습 로직 · Python 스크립트 | 팀원 |
