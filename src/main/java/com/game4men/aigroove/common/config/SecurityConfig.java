@@ -4,6 +4,8 @@ import java.util.Arrays;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -52,11 +54,27 @@ public class SecurityConfig {
                 .requestMatchers("/admin/**").hasRole("ADMIN")
                 .anyRequest().permitAll()
             )
-            // 인증 정보가 없는 요청은 403이 아니라 401로 응답한다.
-            // (스프링 시큐리티 기본값은 Http403ForbiddenEntryPoint)
+            // 인증 정보가 없는 요청을 두 갈래로 나눈다.
+            // 프론트 라우트(/admin/users 등)와 API 경로가 둘 다 /admin/ 으로 시작하므로
+            // URL만으로는 구분할 수 없고, 요청자가 무엇을 기대하는지로 갈라야 한다.
+            //
+            //   브라우저 페이지 요청(새로고침) : Accept: text/html,...
+            //     → index.html 로 forward. React 가 부팅해 로그인 화면으로 보낸다.
+            //       (401을 그대로 주면 index.html 이 안 내려가 React 가 실행되지 못한다)
+            //   axios API 요청               : Accept: application/json, text/plain, */*
+            //     → 401 유지. 프론트가 응답을 보고 처리한다.
+            //
+            // forward 는 필터 체인을 다시 타지 않으므로(기본 REQUEST 디스패치 전용) 루프가 없다.
+            // 스프링 시큐리티 기본값은 Http403ForbiddenEntryPoint 라 401 지정이 필요하다.
             .exceptionHandling(ex -> ex
-                .authenticationEntryPoint((req, res, e) ->
-                    res.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized"))
+                .authenticationEntryPoint((req, res, e) -> {
+                    String accept = req.getHeader(HttpHeaders.ACCEPT);
+                    if (accept != null && accept.contains(MediaType.TEXT_HTML_VALUE)) {
+                        req.getRequestDispatcher("/index.html").forward(req, res);
+                    } else {
+                        res.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized");
+                    }
+                })
             )
             .addFilterBefore(
                 new JwtAuthenticationFilter(jwtUtils, userRepository, loginRepository),
