@@ -17,6 +17,10 @@ bin/
 hs_err_pid*.log
 replay_pid*.log
 
+# React 빌드 산출물 — npm run build 결과를 복사해 넣는 자리다.
+# 배포 때마다 통째로 바뀌므로 추적하지 않는다. CI 가 빌드해 채운다.
+src/main/resources/static/
+
 # Runtime artifacts
 nohup.out
 logs/
@@ -35,12 +39,11 @@ Thumbs.db
 .env
 *.env.local
 
-# 시크릿이 포함된 설정 파일 (application-example.properties 를 템플릿으로 사용)
-application.properties
+# 프로파일별 설정 파일은 시크릿이 담기기 쉬우므로 추적하지 않는다.
+# application.properties 자체는 값이 전부 ${ENV_VAR} 플레이스홀더라 커밋한다.
 application.yml
 application-*.properties
 application-*.yml
-!application-example.properties
 logs/
 generated-images/
 env.ps1
