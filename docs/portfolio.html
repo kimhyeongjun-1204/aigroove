@@ -10,7 +10,7 @@
   body {
     font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
     font-size: 9.6pt;
-    line-height: 1.48;
+    line-height: 1.45;
     color: #1a1a1a;
     max-width: 780px;
     margin: 0 auto;
@@ -40,8 +40,8 @@
     font-size: 11.5pt;
     font-weight: 700;
     letter-spacing: -0.01em;
-    margin-top: 15px;
-    margin-bottom: 6px;
+    margin-top: 13px;
+    margin-bottom: 5px;
     padding-bottom: 4px;
     border-bottom: 1.5px solid #1a1a1a;
   }
@@ -79,7 +79,7 @@
 
   /* ---- 리스트 ---- */
   ul { list-style: none; margin: 4px 0; }
-  li { position: relative; padding-left: 11px; margin-bottom: 2.5px; }
+  li { position: relative; padding-left: 11px; margin-bottom: 2px; }
   li::before { content: "·"; position: absolute; left: 2px; color: #999; font-weight: 700; }
   li:last-child { margin-bottom: 0; }
 
@@ -118,8 +118,8 @@
   .new { background: #fff6d9; padding: 0 2px; }
 
   footer {
-    margin-top: 15px;
-    padding-top: 8px;
+    margin-top: 10px;
+    padding-top: 6px;
     border-top: 1px solid #ddd;
     font-size: 8.8pt;
     color: #666;
@@ -303,11 +303,18 @@
    별도 <code>@Controller</code>로 분리하고 정규식으로 확장자 있는 경로를 제외했습니다.
    이후 역할이 없어진 <code>WebConfig</code>는 제거하고 CORS 설정은 <code>SecurityConfig</code>로 통합했습니다.</p>
 
-<h2>트러블슈팅 ② 운영 환경 전환에서 드러난 결함 3건 <span class="tag">종료 후</span></h2>
-<p>학과 서버에서 AWS로 옮기고 도메인·HTTPS를 적용하는 과정에서, 로컬과 단일 서버 환경에서는 드러나지 않던 결함 3건이 나타났습니다.
-   세 건 모두 <strong>코드가 아니라 배치 조건이 바뀌면서 전제가 깨진 사례</strong>였습니다.</p>
+<h2>트러블슈팅 ② 운영 환경 전환에서 드러난 결함 4건 <span class="tag">종료 후</span></h2>
+<p>학과 서버에서 AWS로 옮기고 도메인·HTTPS를 적용하는 과정에서, 로컬과 단일 서버 환경에서는 드러나지 않던 결함 4건이 나타났습니다.
+   네 건 모두 <strong>코드가 아니라 코드가 서 있던 전제가 바뀌면서 드러난 사례</strong>였습니다.</p>
 <table>
   <tr><th style="width:26%">증상</th><th style="width:37%">원인</th><th>해결</th></tr>
+  <tr>
+    <td>로그인 후 <strong>모든 관리자 API가 401</strong> — 화면이 로딩에서 멈춤</td>
+    <td>컴포넌트 20개 파일 30여 곳이 토큰 주입용 axios 인스턴스 대신 순수 <code>axios</code>를 호출.
+        기존 <code>permitAll</code> 설정 때문에 토큰 없이도 통과해 <strong>결함이 가려져 있었음</strong></td>
+    <td>30여 곳을 고치는 대신 진입점에 <strong>전역 요청 인터셉터</strong>를 등록해 일괄 주입.
+        파일 1개 수정으로 해결돼 기존 코드 회귀 위험이 없음</td>
+  </tr>
   <tr>
     <td>HTTPS 적용 후 same-origin 로그인 요청이 <strong>CORS 403</strong></td>
     <td>Nginx가 TLS를 종료하고 평문 HTTP로 전달해 Spring이 scheme을 <code>http</code>로 인식.
@@ -326,8 +333,9 @@
     <td>설정값을 실제 매핑에 맞춰 수정하고, 재발을 막는 주석을 남김</td>
   </tr>
 </table>
-<p class="note">두 번째 건은 첫 번째 트러블슈팅에서 다룬 SPA 라우팅 문제의 연장입니다. 당시에는 공개 경로만 예외 처리했으나,
-   인증이 필요한 경로에서는 같은 문제가 남아 있었습니다.</p>
+<p class="note">첫 번째 건은 인가를 <code>hasRole("ADMIN")</code>으로 잠그자 숨어 있던 미부착 호출이 한꺼번에 표면화된 것으로,
+   <strong>보안을 강화하는 작업이 기존 코드의 결함을 드러낸 사례</strong>입니다. 로컬에서는 프론트와 백엔드가 다른 포트로 분리돼 있어 재현되지 않았습니다.
+   세 번째 건은 트러블슈팅 ①의 SPA 라우팅 문제의 연장으로, 당시에는 공개 경로만 예외 처리했으나 인증이 필요한 경로에는 같은 문제가 남아 있었습니다.</p>
 
 <h2>개발 방식 개선 <span class="tag">종료 후</span></h2>
 <p>졸업 프로젝트 당시 배포는 <strong>SSH로 학과 서버에 접속해 담당 폴더를 통째로 교체하는 방식</strong>이었습니다.
