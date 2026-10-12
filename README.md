@@ -13,7 +13,7 @@
 | **개발 기간** | 2025.03.03 ~ 2025.06.06 (3개월) |
 | **팀 구성** | 4인 (가천대학교 종합프로젝트) |
 | **담당 역할** | 관리자 백오피스 풀스택 단독 개발 (프론트엔드 + 백엔드 API/서비스) |
-| **개발 규모** | REST API 33개 · React 페이지 20개 · JPA Entity 15개 · Service 9개 · DTO 15개 |
+| **개발 규모** | REST API 33개 · React 페이지 20개 · JPA Entity 15개 · Service 12개 · DTO 15개 |
 | **GitHub** | [Backend (Spring Boot)](https://github.com/kimhyeongjun-1204/aigroove) · [Admin Frontend (React)](https://github.com/kimhyeongjun-1204/aigroove-admin) |
 
 <br>
@@ -22,8 +22,7 @@
 
 - 관리자 백오피스 **REST API 33개**와 React 20개 페이지를 단독 설계·구현
 - JWT 인증 구조를 재점검해 **인가 검증 누락으로 인한 권한 상승 취약점**을 발견·수정
-- 인증·인가 **통합 테스트 7건**을 작성하고, 수정한 코드를 되돌려 테스트가 실패하는지까지 검증
-- JPA Fetch Join으로 목록 조회 **N+1 쿼리를 1회로** 축소
+- 인증·인가 **통합 테스트 5건**을 작성하고, 수정한 코드를 되돌려 테스트가 실패하는지까지 검증
 - AI 학습 API 연동 및 polling 기반 실시간 진행률 모니터링 구현
 
 <br>
@@ -59,7 +58,7 @@ end
 
 subgraph SERVER["Spring Boot 3.4.4"]
 AUTH["인증 · 인가<br/>JWT 필터 · SecurityConfig"]
-ADMIN["admin/<br/>Controller 13 · Service 9 · DTO 15"]
+ADMIN["admin/<br/>Controller 13 · Service 12 · DTO 15"]
 AIAPI["admin/ai/<br/>Controller 3 · DTO 스키마"]
 GAMEMOD["game/<br/>게임 API"]
 end
@@ -89,8 +88,8 @@ class GAMECLIENT,GAMEMOD,AISVC,DB,SMTP other
 | 영역 | 범위 | 담당 |
 |---|---|---|
 | Admin Frontend | React 20페이지 · 공통 컴포넌트 10 · Axios 인터셉터 | 단독 |
-| Admin Backend | Controller 13 · Service 9 · DTO 15 (REST API 33개) | 단독 |
-| 인증 · 인가 | SecurityConfig · JWT 필터 · 통합 테스트 7건 | 공동 |
+| Admin Backend | Controller 13 · Service 12 · DTO 15 (REST API 33개) | 단독 |
+| 인증 · 인가 | SecurityConfig · JWT 필터 · 통합 테스트 5건 | 공동 |
 | 공통 도메인 | Entity 15 · Repository 14 · N+1 최적화 | 단독 |
 | AI 연동 계층 | Controller 3 · 학습 요청 JSON 스키마 설계 | 단독 (스키마는 AI 팀원과 협의) |
 | AI 학습 서비스 | 모델 학습 로직 · Python 스크립트 | 팀원 |
@@ -111,7 +110,7 @@ Spring Security + JWT 기반 Stateless 인증 시스템입니다. BCrypt 비밀�
 - `JwtUtils`에서 토큰 생성·검증, `JwtAuthenticationFilter`에서 요청 헤더의 Bearer 토큰 추출 및 인증 처리
 - `SecurityConfig`에서 `/admin/**`은 `hasRole("ADMIN")` 요구, 로그인·회원가입·정적 리소스만 `permitAll`
 - JWT에 발급 주체(`type`) 클레임을 담아 관리자 토큰과 게임 유저 토큰을 구분
-- 프론트엔드 `ProtectedRoute` 컴포넌트로 미인증 사용자 리다이렉트, Axios 인터셉터로 401 응답 시 자동 로그아웃
+- 프론트엔드 `ProtectedRoute` 컴포넌트로 미인증 사용자 리다이렉트, Axios 인터셉터로 401 응답 시 자동 로그아웃 (현재 사용자 관리 화면에만 적용)
 
 ---
 
@@ -461,7 +460,7 @@ src/
 ## 핵심 구현 사항
 
 ### JWT 기반 Stateless 인증 시스템
-`JwtUtils`에서 HMAC-SHA512 서명으로 토큰을 생성하고, `JwtAuthenticationFilter`(OncePerRequestFilter)에서 Bearer 토큰을 추출·검증합니다. `SecurityConfig`에서 `SessionCreationPolicy.STATELESS`로 세션을 사용하지 않습니다. 프론트엔드에서는 Axios 요청 인터셉터로 토큰을 자동 첨부하고, 응답 인터셉터로 401 수신 시 자동 로그아웃 처리합니다.
+`JwtUtils`에서 HMAC-SHA512 서명으로 토큰을 생성하고, `JwtAuthenticationFilter`(OncePerRequestFilter)에서 Bearer 토큰을 추출·검증합니다. `SecurityConfig`에서 `SessionCreationPolicy.STATELESS`로 세션을 사용하지 않습니다. 프론트엔드에서는 Axios 요청 인터셉터로 토큰을 자동 첨부합니다. 401 수신 시 자동 로그아웃하는 응답 인터셉터는 현재 일부 화면(사용자 관리)에만 적용되어 있습니다.
 
 **인증과 인가의 역할 분리** — 필터는 인증만 담당합니다. 토큰이 유효하면 `SecurityContextHolder`에 권한 정보를 저장하고, 유효하지 않으면 아무것도 하지 않은 채 다음 필터로 넘깁니다. 접근 거부 여부는 `SecurityConfig`의 인가 규칙이 판단합니다. 필터가 직접 응답을 만들면 공개 경로 목록을 필터와 설정 양쪽에서 관리하게 되어 두 곳이 어긋날 수 있기 때문입니다.
 
@@ -493,7 +492,7 @@ AI 팀원과 학습 요청 JSON 스키마(`TrainingRequestDTO` + `TrainingParams
 
 <br>
 
-## 성능 최적화
+## 성능 최적화 (졸업 프로젝트 이후 개선)
 
 ### JPA N+1 문제 해결
 
