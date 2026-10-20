@@ -145,6 +145,34 @@ class AdminRoleAuthorizationTest {
                 .andExpect(status().isForbidden());
     }
 
+    // 같은 규칙 줄 안의 경로를 하나씩 지키는 테스트.
+    // 403은 컨트롤러에 닿기 전에 결정되므로 DB 데이터와 상관없이 판정된다.
+
+    @Test
+    @DisplayName("USER 관리자는 AI 모델 API에 접근할 수 없다")
+    void returns403_whenUserAdminAccessesAiModel() throws Exception {
+        mockMvc.perform(get("/admin/ai/model/detail")
+                        .header("Authorization", "Bearer " + userAdminToken)
+                        .param("model_id", "1"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("AI 관리자는 문의 관리 API에 접근할 수 없다")
+    void returns403_whenAiAdminAccessesInquiry() throws Exception {
+        mockMvc.perform(get("/admin/inquiry")
+                        .header("Authorization", "Bearer " + aiAdminToken))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("AI 관리자는 공지 관리 API에 접근할 수 없다")
+    void returns403_whenAiAdminAccessesNotice() throws Exception {
+        mockMvc.perform(get("/admin/notice")
+                        .header("Authorization", "Bearer " + aiAdminToken))
+                .andExpect(status().isForbidden());
+    }
+
     @Test
     @DisplayName("USER 관리자는 사용자 영역 API에 접근한다")
     void returns200_whenUserAdminAccessesUserArea() throws Exception {
