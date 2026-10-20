@@ -56,11 +56,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 Admin admin = loginRepository.findByUsername(username).orElse(null);
                 if (admin != null) {
                     // 관리자 공통 권한과 세부 역할을 함께 부여한다.
-                    // Admin.Role 에도 USER 가 있어 게임 유저와 구분하려면 ROLE_ADMIN 이 필요하다.
+                    // Admin.Role 에도 USER 가 있어 그대로 ROLE_USER 로 주면 게임 유저와 이름이 겹친다.
+                    // 세부 역할은 ROLE_ADMIN_MASTER / ROLE_ADMIN_USER / ROLE_ADMIN_AI 로 구분한다.
                     List<String> authorities = new ArrayList<>();
                     authorities.add("ROLE_ADMIN");
                     if (admin.getRole() != null) {
-                        authorities.add("ROLE_" + admin.getRole().name());
+                        authorities.add("ROLE_ADMIN_" + admin.getRole().name());
                     }
                     setAuthentication(request, username, authorities);
                     request.setAttribute("admin", admin);

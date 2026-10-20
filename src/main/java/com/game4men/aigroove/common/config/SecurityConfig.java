@@ -51,6 +51,15 @@ public class SecurityConfig {
                 .requestMatchers("/api/game/**").authenticated()
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                 .requestMatchers("/", "/index.html", "/static/**", "/*.js", "/*.css", "/*.ico", "/*.png", "/*.json").permitAll()
+                // 관리자 역할별 API 영역 (프론트 Sidebar.js 메뉴 기준).
+                // 규칙은 위에서부터 차례로 비교해 처음 맞는 하나만 적용된다.
+                // 그래서 구체적인 경로를 /admin/** 보다 위에 둬야 한다. 아래로 내리면 /admin/** 에 먼저 걸려
+                // ROLE_ADMIN 만 있으면 통과해 버린다.
+                // 세부 역할은 ADMIN_ 접두사를 붙인다. Admin.Role.USER 를 ROLE_USER 로 주면
+                // 게임 유저의 ROLE_USER 와 이름이 같아져 게임 유저도 사용자 관리 API를 통과한다.
+                .requestMatchers("/admin/admin/**").hasRole("ADMIN_MASTER")
+                .requestMatchers("/admin/user/**", "/admin/inquiry/**", "/admin/notice/**").hasAnyRole("ADMIN_MASTER", "ADMIN_USER")
+                .requestMatchers("/admin/ai/**", "/admin/dataset/**").hasAnyRole("ADMIN_MASTER", "ADMIN_AI")
                 .requestMatchers("/admin/**").hasRole("ADMIN")
                 .anyRequest().permitAll()
             )
